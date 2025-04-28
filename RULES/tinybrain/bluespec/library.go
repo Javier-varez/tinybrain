@@ -17,6 +17,7 @@ func init() {
 type Library struct {
 	Out  core.OutPath
 	Srcs []core.Path
+	Deps []Dep
 }
 
 var copySrcsTemplate = template.Must(template.New("Script").Parse(`#!/bin/bash -e
@@ -57,6 +58,14 @@ func (l Library) srcsDir() core.OutPath {
 
 func (l Library) bluespecDir() core.OutPath {
 	return l.Out
+}
+
+func (l Library) topLevelSrcDir() core.OutPath {
+	return l.intermediatesDir().WithSuffix("/top_level")
+}
+
+func (l Library) topLevelSrc() core.OutPath {
+	return l.topLevelSrcDir().WithSuffix("/GeneratedLibraryTopLevel.bsv")
 }
 
 func (l Library) topLevelOut() core.OutPath {
@@ -113,7 +122,7 @@ type topLevelArgs struct {
 	Srcs []string
 }
 
-func (l Library) generateTopLevel(ctx core.Context, srcs []core.Path) core.OutPath {
+func (l Library) generateTopLevel(ctx core.Context, srcs []core.Path) {
 	args := topLevelArgs{}
 	for _, src := range srcs {
 		base := filepath.Base(src.Absolute())
@@ -122,30 +131,44 @@ func (l Library) generateTopLevel(ctx core.Context, srcs []core.Path) core.OutPa
 	}
 
 	data := executeTemplate(topLevelTemplate, &args)
-	topLevel := l.srcsDir().WithSuffix("/GeneratedLibraryTopLevel.bsv")
 
 	ctx.AddBuildStep(core.BuildStep{
-		Out:  topLevel,
+		Out:  l.topLevelSrc(),
 		Ins:  l.Srcs,
 		Data: data,
 	})
-	return topLevel
 }
 
 func (l Library) Build(ctx core.Context) {
 	inputs := l.copySrcs(ctx)
-	topLevelSrc := l.generateTopLevel(ctx, inputs)
+	l.generateTopLevel(ctx, inputs)
 
-	inputs = append(inputs, topLevelSrc)
+	inputs = append(inputs, l.topLevelSrc())
 
 	bluespecDir := l.bluespecDir()
 	srcsDir := l.srcsDir()
 	outputs := l.compilerOuts()
 	topLevelOut := l.topLevelOut()
 
+	importedPaths := []string{
+		"%/Libraries",
+		srcsDir.Absolute(),
+	}
+	for _, dep := range l.Deps {
+		otherLib := dep.BluespecLibrary()
+		importedPaths = append(importedPaths, otherLib.bluespecDir().Absolute())
+		for _, lib := range otherLib.compilerOuts() {
+			inputs = append(inputs, lib)
+		}
+	}
+
 	ctx.AddBuildStep(core.BuildStep{
 		Outs: outputs,
 		Ins:  inputs,
-		Cmd:  fmt.Sprintf("rm -rf %q && mkdir -p %q && bsc --bdir %q -p %q:%%/Libraries -u %q && rm -rf %q", bluespecDir, bluespecDir, bluespecDir, srcsDir, topLevelSrc, topLevelOut),
+		Cmd:  fmt.Sprintf("rm -rf %q && mkdir -p %q && bsc --bdir %q -p %q -u %q && rm -rf %q", bluespecDir, bluespecDir, bluespecDir, strings.Join(importedPaths, ":"), l.topLevelSrc(), topLevelOut),
 	})
+}
+
+func (l Library) BluespecLibrary() Library {
+	return l
 }
