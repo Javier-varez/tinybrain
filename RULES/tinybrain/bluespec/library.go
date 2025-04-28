@@ -72,7 +72,7 @@ func (l Library) topLevelOut() core.OutPath {
 	return l.Out.WithSuffix("/GeneratedLibraryTopLevel.bo")
 }
 
-func (l *Library) copiedSrcs() []core.OutPath {
+func (l Library) copiedSrcs() []core.OutPath {
 	copiedSrcs := []core.OutPath{}
 
 	for _, src := range l.Srcs {
@@ -82,7 +82,7 @@ func (l *Library) copiedSrcs() []core.OutPath {
 	return copiedSrcs
 }
 
-func (l *Library) compilerOuts() []core.OutPath {
+func (l Library) compilerOuts() []core.OutPath {
 	outs := []core.OutPath{}
 
 	for _, src := range l.Srcs {
@@ -139,6 +139,39 @@ func (l Library) generateTopLevel(ctx core.Context, srcs []core.Path) {
 	})
 }
 
+// Includes transitive dependencies
+func (l Library) allDeps() []Library {
+	// Use a visited to check for circular dependencies.
+	visited := map[core.OutPath]struct{}{}
+	allLibs := []Library{}
+
+	var collectLibs func(Library)
+	collectLibs = func(lib Library) {
+		if _, ok := visited[lib.Out]; ok {
+			fmt.Println("Found circular dependency in library. Dependency graph:")
+			for path := range visited {
+				fmt.Println("\t", path)
+			}
+			panic("Unable to resolve dependencies")
+		}
+
+		allLibs = append(allLibs, lib)
+
+		visited[lib.Out] = struct{}{}
+		for _, dep := range lib.Deps {
+			otherLib := dep.BluespecLibrary()
+			collectLibs(otherLib)
+		}
+		delete(visited, lib.Out)
+	}
+
+	for _, dep := range l.Deps {
+		collectLibs(dep.BluespecLibrary())
+	}
+
+	return allLibs
+}
+
 func (l Library) Build(ctx core.Context) {
 	inputs := l.copySrcs(ctx)
 	l.generateTopLevel(ctx, inputs)
@@ -154,18 +187,18 @@ func (l Library) Build(ctx core.Context) {
 		"%/Libraries",
 		srcsDir.Absolute(),
 	}
-	for _, dep := range l.Deps {
-		otherLib := dep.BluespecLibrary()
-		importedPaths = append(importedPaths, otherLib.bluespecDir().Absolute())
-		for _, lib := range otherLib.compilerOuts() {
-			inputs = append(inputs, lib)
+
+	for _, dep := range l.allDeps() {
+		importedPaths = append(importedPaths, dep.bluespecDir().Absolute())
+		for _, out := range dep.compilerOuts() {
+			inputs = append(inputs, out)
 		}
 	}
 
 	ctx.AddBuildStep(core.BuildStep{
 		Outs: outputs,
 		Ins:  inputs,
-		Cmd:  fmt.Sprintf("rm -rf %q && mkdir -p %q && bsc --bdir %q -p %q -u %q && rm -rf %q", bluespecDir, bluespecDir, bluespecDir, strings.Join(importedPaths, ":"), l.topLevelSrc(), topLevelOut),
+		Cmd:  fmt.Sprintf("rm -rf %q && mkdir -p %q && bsc -quiet --bdir %q -p %q -u %q && rm -rf %q", bluespecDir, bluespecDir, bluespecDir, strings.Join(importedPaths, ":"), l.topLevelSrc(), topLevelOut),
 	})
 }
 
