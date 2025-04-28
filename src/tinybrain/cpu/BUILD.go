@@ -5,7 +5,7 @@ import (
 )
 
 var Lib = bluespec.Library{
-	Out: out("fmc"),
+	Out: out("CpuLib"),
 	Srcs: ins(
 		"Types.bsv",
 		"Alu.bsv",

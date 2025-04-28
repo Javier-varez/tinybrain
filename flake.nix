@@ -13,6 +13,7 @@
         packages = [
           dbt.packages.${system}.dbt
           pkgs.bluespec
+          pkgs.gtkwave
         ];
       };
     in
