@@ -32,6 +32,10 @@ func (b Bluesim) simDir() core.OutPath {
 	return b.intermediatesDir().WithSuffix("/simulation")
 }
 
+func (b Bluesim) infoDir() core.OutPath {
+	return b.intermediatesDir().WithSuffix("/info")
+}
+
 func (b Bluesim) Build(ctx core.Context) {
 	importPaths := []string{
 		"%/Libraries",
@@ -54,10 +58,10 @@ func (b Bluesim) Build(ctx core.Context) {
 
 	flags := strings.Join(b.Flags, " ")
 
-	cmd := fmt.Sprintf("rm -rf %q %q %q", b.simDir().Absolute(), b.bluespecDir().Absolute(), b.Out.Absolute())
-	cmd = fmt.Sprintf("%s && mkdir -p %q %q", cmd, b.simDir().Absolute(), b.bluespecDir().Absolute())
-	cmd = fmt.Sprintf("%s && bsc -quiet --sim %s --simdir %q --bdir %q -p %q -g %q %q", cmd, flags, b.simDir(), b.bluespecDir(), strings.Join(importPaths, ":"), b.TopModule, b.TestBench.Absolute())
-	cmd = fmt.Sprintf("%s && bsc -quiet -e %q -sim -o %q %s --simdir %q --bdir %q -p %q -g %q", cmd, b.TopModule, b.Out.Absolute(), flags, b.simDir(), b.bluespecDir(), strings.Join(importPaths, ":"), b.TopModule)
+	cmd := fmt.Sprintf("rm -rf %q %q %q %q", b.simDir().Absolute(), b.bluespecDir().Absolute(), b.infoDir(), b.Out.Absolute())
+	cmd = fmt.Sprintf("%s && mkdir -p %q %q %q", cmd, b.simDir().Absolute(), b.bluespecDir().Absolute(), b.infoDir())
+	cmd = fmt.Sprintf("%s && bsc -quiet --sim %s --simdir %q --bdir %q --info-dir %q -p %q -g %q %q", cmd, flags, b.simDir(), b.bluespecDir(), b.infoDir(), strings.Join(importPaths, ":"), b.TopModule, b.TestBench.Absolute())
+	cmd = fmt.Sprintf("%s && bsc -quiet -e %q -sim -o %q %s --simdir %q --bdir %q --info-dir %q -p %q -g %q", cmd, b.TopModule, b.Out.Absolute(), flags, b.simDir(), b.bluespecDir(), b.infoDir(), strings.Join(importPaths, ":"), b.TopModule)
 
 	ctx.AddBuildStep(core.BuildStep{
 		Out: b.Out,

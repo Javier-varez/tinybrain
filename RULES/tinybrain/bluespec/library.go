@@ -24,7 +24,9 @@ var copySrcsTemplate = template.Must(template.New("Script").Parse(`#!/bin/bash -
 {{ $targetDir := .TargetDir }}
 rm -rf "{{ $targetDir }}"
 mkdir -p "{{ $targetDir }}"
-{{ range .Srcs }}cp "{{ . }}" "{{ $targetDir }}"{{ end }}
+{{ range .Srcs }}
+cp "{{ . }}" "{{ $targetDir }}"
+{{ end }}
 `))
 
 type copySrcsArgs struct {
