@@ -27,8 +27,8 @@ fn main() -> ! {
     let p = stm32h5xx_hal::pac::Peripherals::take().unwrap();
     let core_p = stm32h5xx_hal::pac::CorePeripherals::take().unwrap();
 
-    // set voltage scale 3
-    let pwr = p.PWR.constrain().vos3().freeze();
+    // set voltage scale 1
+    let pwr = p.PWR.constrain().vos1().freeze();
 
     // The nucleo board uses by default the MCO output of the STLINK v3 at 8 MHz.
     let rcc = p
@@ -70,9 +70,9 @@ fn main() -> ! {
 
     let mut delay = core_p.SYST.delay(&rcc.clocks);
 
-    defmt::error!("Hello, world!");
     loop {
         leds.party();
         delay.delay_ms(100);
+        defmt::error!("Hello, world!");
     }
 }
