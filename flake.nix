@@ -14,6 +14,8 @@
           dbt.packages.${system}.dbt
           pkgs.bluespec
           pkgs.gtkwave
+          pkgs.probe-rs
+          pkgs.flip-link
         ];
       };
     in

@@ -1,0 +1,30 @@
+[package]
+name = "tinybrain-fw"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cortex-m-rt = { version = "0.7.5", features = [] }
+cortex-m = { version = "0.7.7", features = ["inline-asm", "critical-section-single-core"] }
+defmt = "1.0.1"
+defmt-rtt = "1.0.0"
+panic-halt = "1.0.0"
+embedded-hal = "1.0.0"
+stm32h5xx-hal = { git = "https://github.com/stm32-rs/stm32h5xx-hal", features = ["stm32h563", "rt"] }
+
+[profile.dev]
+opt-level = "s"
+debug = "full"
+overflow-checks = true
+debug-assertions = true
+lto = false
+panic = "abort"
+codegen-units = 1
+
+[profile.release]
+opt-level = "s"
+debug = "full"
+overflow-checks = true
+lto = "fat"
+panic = "abort"
+codegen-units = 1
