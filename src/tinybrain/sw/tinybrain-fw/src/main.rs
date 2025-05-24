@@ -6,7 +6,7 @@ use panic_halt as _;
 
 use cortex_m_rt::entry;
 use embedded_hal::{delay::DelayNs, digital::StatefulOutputPin};
-use stm32h5xx_hal::prelude::*;
+use stm32h5xx_hal::{prelude::*, rcc::ResetEnable};
 
 struct Leds<T: StatefulOutputPin> {
     green: T,
@@ -41,6 +41,7 @@ fn main() -> ! {
         .freeze(pwr, &p.SBS);
 
     let gpiob = p.GPIOB.split(rcc.peripheral.GPIOB);
+    let gpiod = p.GPIOD.split(rcc.peripheral.GPIOD);
     let gpiof = p.GPIOF.split(rcc.peripheral.GPIOF);
     let gpiog = p.GPIOG.split(rcc.peripheral.GPIOG);
 
@@ -70,9 +71,99 @@ fn main() -> ! {
 
     let mut delay = core_p.SYST.delay(&rcc.clocks);
 
+    // TODO(javier-varez): FMC setup
+    let fmc = p.FMC;
+
+    // Enable and reset the FMC
+    rcc.peripheral.FMC.enable().reset();
+
+    // Configured according to table 206 of the TRM
+    fmc.bcr1().write(|w| unsafe {
+        w.mbken()
+            .set_bit()
+            .muxen()
+            .set_bit()
+            .mtyp()
+            .bits(1)
+            .mwid()
+            .bits(1)
+            .faccen()
+            .set_bit()
+            .bursten()
+            .set_bit()
+            .waitpol()
+            .clear_bit()
+            .waitcfg()
+            .set_bit()
+            .wren()
+            .set_bit()
+            .waiten()
+            .clear_bit()
+            .extmod()
+            .clear_bit()
+            .asyncwait()
+            .clear_bit()
+            .cpsize()
+            .bits(0)
+            .cburstrw()
+            .set_bit()
+            .cclken()
+            .clear_bit()
+            .fmcen()
+            .set_bit()
+    });
+
+    // Configured according to table 207 of the TRM
+    fmc.btr1().write(|w| unsafe {
+        w.busturn()
+            .bits(0)
+            .clkdiv()
+            .bits(0xf)
+            .datlat()
+            .bits(0)
+            .accmod()
+            .bits(0)
+    });
+
+    // FMC clk pin
+    let pd3_af12 = gpiod
+        .pd3
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
+
+    // FMC NOE
+    let pd4_af12 = gpiod
+        .pd4
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
+
+    // FMC NWE
+    let pd5_af12 = gpiod
+        .pd5
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
+
+    // FMC NE1
+    let pd7_af12 = gpiod
+        .pd7
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
+
+    // FMC NADV
+    let pb7_af12 = gpiob
+        .pb7
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
+
+    unsafe { core::ptr::write_volatile(0x6000_0000 as *mut u8, 12) };
+
     loop {
         leds.party();
-        delay.delay_ms(100);
         defmt::error!("Hello, world!");
+
+        delay.delay_ms(100);
+        unsafe { core::ptr::write_volatile(0x6000_0000 as *mut u8, 12) };
+        delay.delay_us(50);
+        unsafe { core::ptr::read_volatile(0x6000_0000 as *mut u8) };
     }
 }
