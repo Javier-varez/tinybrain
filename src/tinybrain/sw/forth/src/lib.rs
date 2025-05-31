@@ -7,6 +7,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
+#[derive(Clone)]
 pub enum Data {
     Number(i64),
     // Function,
@@ -36,6 +37,36 @@ fn multiply(ctx: &mut Context, _word_iter: &mut dyn Iterator<Item = &str>) -> Re
     Ok(())
 }
 
+fn dup(ctx: &mut Context, _word_iter: &mut dyn Iterator<Item = &str>) -> Result<(), String> {
+    let entry = ctx.pop()?;
+    ctx.push(entry.clone());
+    ctx.push(entry);
+
+    Ok(())
+}
+
+fn drop(ctx: &mut Context, _word_iter: &mut dyn Iterator<Item = &str>) -> Result<(), String> {
+    let _entry = ctx.pop()?;
+    Ok(())
+}
+
+fn swap(ctx: &mut Context, _word_iter: &mut dyn Iterator<Item = &str>) -> Result<(), String> {
+    let a = ctx.pop()?;
+    let b = ctx.pop()?;
+    ctx.push(a);
+    ctx.push(b);
+    Ok(())
+}
+
+fn over(ctx: &mut Context, _word_iter: &mut dyn Iterator<Item = &str>) -> Result<(), String> {
+    let a = ctx.pop()?;
+    let b = ctx.pop()?;
+    ctx.push(b.clone());
+    ctx.push(a);
+    ctx.push(b);
+    Ok(())
+}
+
 fn consume_and_display(
     ctx: &mut Context,
     _word_iter: &mut dyn Iterator<Item = &str>,
@@ -61,6 +92,10 @@ impl Default for Context {
                 ("+".to_string(), add),
                 ("*".to_string(), multiply),
                 (".".to_string(), consume_and_display),
+                ("dup".to_string(), dup),
+                ("drop".to_string(), drop),
+                ("swap".to_string(), swap),
+                ("over".to_string(), over),
             ],
             stack: vec![],
             output: String::new(),
@@ -83,6 +118,10 @@ impl Context {
             Some(_) => Err("".to_string()),
             None => Err("".to_string()),
         }
+    }
+
+    fn push(&mut self, entry: Data) {
+        self.stack.push(entry);
     }
 
     fn push_number(&mut self, number: i64) {
