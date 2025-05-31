@@ -28,28 +28,21 @@ fn main() -> ! {
     let p = stm32h5xx_hal::pac::Peripherals::take().unwrap();
     let core_p = stm32h5xx_hal::pac::CorePeripherals::take().unwrap();
 
-    // set voltage scale 0
-    let pwr = p.PWR.constrain().vos0().freeze();
     let mut flash = p.FLASH;
     let mut icache = p.ICACHE;
     let mut dcache = p.DCACHE;
 
+    let mut mpu = core_p.MPU;
+
     init::init_flash(&mut flash);
     init::init_caches(&mut icache, &mut dcache);
-    // The nucleo board uses by default the MCO output of the STLINK v3 at 8 MHz.
-    let rcc = p
-        .RCC
-        .constrain()
-        .use_hse(8.MHz())
-        .pll1_p_ck(250.MHz())
-        .hclk(250.MHz())
-        .sysclk(250.MHz())
-        .freeze(pwr, &p.SBS);
+    init::init_mpu(&mut mpu);
+    let ccdr = init::init_clock(p.RCC, p.PWR, &p.SBS);
 
-    let gpiob = p.GPIOB.split(rcc.peripheral.GPIOB);
-    let gpiod = p.GPIOD.split(rcc.peripheral.GPIOD);
-    let gpiof = p.GPIOF.split(rcc.peripheral.GPIOF);
-    let gpiog = p.GPIOG.split(rcc.peripheral.GPIOG);
+    let gpiob = p.GPIOB.split(ccdr.peripheral.GPIOB);
+    let gpiod = p.GPIOD.split(ccdr.peripheral.GPIOD);
+    let gpiof = p.GPIOF.split(ccdr.peripheral.GPIOF);
+    let gpiog = p.GPIOG.split(ccdr.peripheral.GPIOG);
 
     let green_led = gpiob
         .pb0
@@ -75,12 +68,12 @@ fn main() -> ! {
         red: red_led,
     };
 
-    let mut delay = core_p.SYST.delay(&rcc.clocks);
+    let mut delay = core_p.SYST.delay(&ccdr.clocks);
 
     let fmc = p.FMC;
 
     // Enable and reset the FMC
-    rcc.peripheral.FMC.enable().reset();
+    ccdr.peripheral.FMC.enable().reset();
 
     // Configured according to table 206 of the TRM
     fmc.bcr1().modify(|_, w| unsafe {
