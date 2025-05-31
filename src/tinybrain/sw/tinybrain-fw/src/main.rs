@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+mod init;
 use defmt_rtt as _;
 use panic_probe as _;
 
@@ -29,7 +30,12 @@ fn main() -> ! {
 
     // set voltage scale 0
     let pwr = p.PWR.constrain().vos0().freeze();
+    let mut flash = p.FLASH;
+    let mut icache = p.ICACHE;
+    let mut dcache = p.DCACHE;
 
+    init::init_flash(&mut flash);
+    init::init_caches(&mut icache, &mut dcache);
     // The nucleo board uses by default the MCO output of the STLINK v3 at 8 MHz.
     let rcc = p
         .RCC
