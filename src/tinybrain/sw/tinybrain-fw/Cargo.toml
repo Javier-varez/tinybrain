@@ -10,7 +10,7 @@ defmt = "1.0.1"
 defmt-rtt = "1.0.0"
 panic-halt = "1.0.0"
 embedded-hal = "1.0.0"
-stm32h5xx-hal = { git = "https://github.com/stm32-rs/stm32h5xx-hal", features = ["stm32h563", "rt"] }
+stm32h5xx-hal = { git = "https://git@github.com/Javier-varez/stm32h5xx-hal.git", branch = "fix-ospeedr-and-pupdr-indexing", features = ["stm32h563", "rt", "defmt"] }
 
 [profile.dev]
 opt-level = "s"

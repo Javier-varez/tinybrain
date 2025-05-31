@@ -227,10 +227,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
-name = "stm32h5-staging"
-version = "0.18.1"
+name = "stm32h5"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f106b7436e871abb859f44d7a642703f65bdf12ebe5f11239cff6266ceeb1300"
+checksum = "83d941dd23934d2010882e89ad6c61b54e2bef3d46a5da04a3e8694e03a8387e"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -241,13 +241,14 @@ dependencies = [
 [[package]]
 name = "stm32h5xx-hal"
 version = "0.0.0"
-source = "git+https://github.com/stm32-rs/stm32h5xx-hal#144bca63a8e9527df8733fddefd290207c48a879"
+source = "git+https://git@github.com/Javier-varez/stm32h5xx-hal.git?branch=fix-ospeedr-and-pupdr-indexing#5502f08e46723989a7aa4a2249c2dc990c1cd9a9"
 dependencies = [
  "cortex-m",
+ "defmt 0.3.100",
  "embedded-hal 1.0.0",
  "fugit",
  "paste",
- "stm32h5-staging",
+ "stm32h5",
 ]
 
 [[package]]
