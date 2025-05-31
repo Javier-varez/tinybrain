@@ -1,13 +1,15 @@
 #![no_std]
 #![no_main]
 
+mod fmc;
 mod init;
+
 use defmt_rtt as _;
 use panic_probe as _;
 
 use cortex_m_rt::entry;
 use embedded_hal::{delay::DelayNs, digital::StatefulOutputPin};
-use stm32h5xx_hal::{prelude::*, rcc::ResetEnable};
+use stm32h5xx_hal::prelude::*;
 
 struct Leds<T: StatefulOutputPin> {
     green: T,
@@ -39,6 +41,9 @@ fn main() -> ! {
     init::init_mpu(&mut mpu);
     let ccdr = init::init_clock(p.RCC, p.PWR, &p.SBS);
 
+    let mut fmc = p.FMC;
+    fmc::init_fmc(&mut fmc, ccdr.peripheral.FMC);
+
     let gpiob = p.GPIOB.split(ccdr.peripheral.GPIOB);
     let gpiod = p.GPIOD.split(ccdr.peripheral.GPIOD);
     let gpiof = p.GPIOF.split(ccdr.peripheral.GPIOF);
@@ -69,39 +74,6 @@ fn main() -> ! {
     };
 
     let mut delay = core_p.SYST.delay(&ccdr.clocks);
-
-    let fmc = p.FMC;
-
-    // Enable and reset the FMC
-    ccdr.peripheral.FMC.enable().reset();
-
-    // Configured according to table 206 of the TRM
-    fmc.bcr1().modify(|_, w| unsafe {
-        w.mbken().set_bit();
-        w.muxen().set_bit();
-        w.mtyp().bits(1);
-        w.mwid().bits(1);
-        w.faccen().set_bit();
-        w.bursten().set_bit();
-        w.waitpol().clear_bit();
-        w.waitcfg().set_bit();
-        w.wren().set_bit();
-        w.waiten().clear_bit();
-        w.extmod().clear_bit();
-        w.asyncwait().clear_bit();
-        w.cpsize().bits(0);
-        w.cburstrw().set_bit();
-        w.cclken().clear_bit();
-        w.fmcen().set_bit()
-    });
-
-    // Configured according to table 207 of the TRM
-    fmc.btr1().modify(|_, w| unsafe {
-        w.busturn().bits(0);
-        w.clkdiv().bits(0xf);
-        w.datlat().bits(0);
-        w.accmod().bits(0)
-    });
 
     // FMC clk pin
     let _pd3_af12 = gpiod
@@ -152,15 +124,18 @@ fn main() -> ! {
         .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
 
     let mut value = 0u16;
+    let mut offset = 0usize;
     loop {
         leds.party();
         defmt::error!("Hello, world!");
 
         delay.delay_ms(100);
-        unsafe { core::ptr::write_volatile(0x6000_0000 as *mut u16, value) };
+        unsafe { core::ptr::write_volatile((0x6000_0000 + offset) as *mut u16, value) };
         delay.delay_us(50);
-        unsafe { core::ptr::read_volatile(0x6000_0000 as *mut u16) };
+        let read = unsafe { core::ptr::read_volatile((0x6000_0000 + offset) as *mut u16) };
+        defmt::error!("read {}", read);
 
         value += 1;
+        offset = (offset + 1) % 16;
     }
 }
