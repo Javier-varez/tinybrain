@@ -27,8 +27,8 @@ fn main() -> ! {
     let p = stm32h5xx_hal::pac::Peripherals::take().unwrap();
     let core_p = stm32h5xx_hal::pac::CorePeripherals::take().unwrap();
 
-    // set voltage scale 1
-    let pwr = p.PWR.constrain().vos1().freeze();
+    // set voltage scale 0
+    let pwr = p.PWR.constrain().vos0().freeze();
 
     // The nucleo board uses by default the MCO output of the STLINK v3 at 8 MHz.
     let rcc = p
@@ -71,7 +71,6 @@ fn main() -> ! {
 
     let mut delay = core_p.SYST.delay(&rcc.clocks);
 
-    // TODO(javier-varez): FMC setup
     let fmc = p.FMC;
 
     // Enable and reset the FMC
@@ -126,44 +125,63 @@ fn main() -> ! {
     });
 
     // FMC clk pin
-    let pd3_af12 = gpiod
+    let _pd3_af12 = gpiod
         .pd3
         .into_alternate::<12>()
         .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
 
     // FMC NOE
-    let pd4_af12 = gpiod
+    let _pd4_af12 = gpiod
         .pd4
         .into_alternate::<12>()
         .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
 
     // FMC NWE
-    let pd5_af12 = gpiod
+    let _pd5_af12 = gpiod
         .pd5
         .into_alternate::<12>()
         .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
 
     // FMC NE1
-    let pd7_af12 = gpiod
+    let _pd7_af12 = gpiod
         .pd7
         .into_alternate::<12>()
         .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
 
     // FMC NADV
-    let pb7_af12 = gpiob
+    let _pb7_af12 = gpiob
         .pb7
         .into_alternate::<12>()
         .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
 
-    unsafe { core::ptr::write_volatile(0x6000_0000 as *mut u8, 12) };
+    // FMC D0/AD0
+    let _pd14_af12 = gpiod
+        .pd14
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
 
+    // FMC D1/AD1
+    let _pd15_af12 = gpiod
+        .pd15
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
+
+    // FMC D2/AD2
+    let _pd0_af12 = gpiod
+        .pd0
+        .into_alternate::<12>()
+        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
+
+    let mut value = 0u16;
     loop {
         leds.party();
         defmt::error!("Hello, world!");
 
         delay.delay_ms(100);
-        unsafe { core::ptr::write_volatile(0x6000_0000 as *mut u8, 12) };
+        unsafe { core::ptr::write_volatile(0x6000_0000 as *mut u16, value) };
         delay.delay_us(50);
-        unsafe { core::ptr::read_volatile(0x6000_0000 as *mut u8) };
+        unsafe { core::ptr::read_volatile(0x6000_0000 as *mut u16) };
+
+        value += 1;
     }
 }
