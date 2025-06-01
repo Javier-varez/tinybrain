@@ -67,12 +67,9 @@ pub fn init_mpu(mpu: &mut MPU) {
     // SAFETY: Region attributes are valid for the external memory attached to FMC
     const OUTER_OFFSET: usize = 4;
     const INNER_OFFSET: usize = 0;
-    const NORMAL_MEM_NON_CHACHEABLE: u32 = 0b0100;
-    unsafe {
-        mpu.mair[0].write(
-            NORMAL_MEM_NON_CHACHEABLE << OUTER_OFFSET | NORMAL_MEM_NON_CHACHEABLE << INNER_OFFSET,
-        )
-    };
+    const DEVICE_MEM: u32 = 0b0000;
+    const DEVICE_NGNRNE: u32 = 0b0000;
+    unsafe { mpu.mair[0].write(DEVICE_MEM << OUTER_OFFSET | DEVICE_NGNRNE << INNER_OFFSET) };
 
     // SAFETY: The effect of setting this register is memory-safe.
     unsafe {

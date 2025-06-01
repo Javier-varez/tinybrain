@@ -21,7 +21,7 @@ pub fn init_fmc(fmc: &mut FMC, fmc_rec: rec::Fmc) {
         w.asyncwait().clear_bit();
         w.cpsize().bits(0);
         w.cburstrw().set_bit();
-        w.cclken().clear_bit();
+        w.cclken().set_bit();
         w.fmcen().set_bit()
     });
 
