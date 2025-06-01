@@ -8,22 +8,8 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use cortex_m_rt::entry;
-use embedded_hal::{delay::DelayNs, digital::StatefulOutputPin};
+use embedded_hal::delay::DelayNs;
 use stm32h5xx_hal::prelude::*;
-
-struct Leds<T: StatefulOutputPin> {
-    green: T,
-    yellow: T,
-    red: T,
-}
-
-impl<T: StatefulOutputPin> Leds<T> {
-    pub fn party(&mut self) {
-        self.red.toggle().unwrap();
-        self.green.toggle().unwrap();
-        self.yellow.toggle().unwrap();
-    }
-}
 
 #[entry]
 fn main() -> ! {
@@ -41,174 +27,39 @@ fn main() -> ! {
     init::init_mpu(&mut mpu);
     let ccdr = init::init_clock(p.RCC, p.PWR, &p.SBS);
 
-    let mut fmc = p.FMC;
-    fmc::init_fmc(&mut fmc, ccdr.peripheral.FMC);
-
     let gpiob = p.GPIOB.split(ccdr.peripheral.GPIOB);
     let gpiod = p.GPIOD.split(ccdr.peripheral.GPIOD);
     let gpioe = p.GPIOE.split(ccdr.peripheral.GPIOE);
-    let gpiof = p.GPIOF.split(ccdr.peripheral.GPIOF);
-    let gpiog = p.GPIOG.split(ccdr.peripheral.GPIOG);
 
-    let green_led = gpiob
-        .pb0
-        .into_push_pull_output()
-        .speed(stm32h5xx_hal::gpio::Speed::Low)
-        .erase();
-
-    let yellow_led = gpiof
-        .pf4
-        .into_push_pull_output()
-        .speed(stm32h5xx_hal::gpio::Speed::Low)
-        .erase();
-
-    let red_led = gpiog
-        .pg4
-        .into_push_pull_output()
-        .speed(stm32h5xx_hal::gpio::Speed::Low)
-        .erase();
-
-    let mut leds = Leds {
-        green: green_led,
-        yellow: yellow_led,
-        red: red_led,
-    };
+    let _fmc = fmc::Fmc::init(
+        p.FMC,
+        ccdr.peripheral.FMC,
+        fmc::FmcPins {
+            clk: gpiod.pd3,
+            noe: gpiod.pd4,
+            nwe: gpiod.pd5,
+            ne1: gpiod.pd7,
+            nadv: gpiob.pb7,
+            d0: gpiod.pd14,
+            d1: gpiod.pd15,
+            d2: gpiod.pd0,
+            d3: gpiod.pd1,
+            d4: gpioe.pe7,
+            d5: gpioe.pe8,
+            d6: gpioe.pe9,
+            d7: gpioe.pe10,
+            d8: gpioe.pe11,
+            d9: gpioe.pe12,
+            d10: gpioe.pe13,
+            d11: gpioe.pe14,
+            d12: gpioe.pe15,
+        },
+    );
 
     let mut delay = core_p.SYST.delay(&ccdr.clocks);
 
-    // FMC clk pin
-    let _pd3_af12 = gpiod
-        .pd3
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC NOE
-    let _pd4_af12 = gpiod
-        .pd4
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC NWE
-    let _pd5_af12 = gpiod
-        .pd5
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC NE1
-    let _pd7_af12 = gpiod
-        .pd7
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC NADV
-    let _pb7_af12 = gpiob
-        .pb7
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D0/AD0
-    let _pd14_af12 = gpiod
-        .pd14
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D1/AD1
-    let _pd15_af12 = gpiod
-        .pd15
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D2/AD2
-    let _pd0_af12 = gpiod
-        .pd0
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D3/AD3
-    let _pd1_af12 = gpiod
-        .pd1
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D4/AD4
-    let _pe7_af12 = gpioe
-        .pe7
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D5/AD5
-    let _pe8_af12 = gpioe
-        .pe8
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D6/AD6
-    let _pe9_af12 = gpioe
-        .pe9
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D7/AD7
-    let _pe10_af12 = gpioe
-        .pe10
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D8/AD8
-    let _pe11_af12 = gpioe
-        .pe11
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D9/AD9
-    let _pe12_af12 = gpioe
-        .pe12
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D10/AD10
-    let _pe13_af12 = gpioe
-        .pe13
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D11/AD11
-    let _pe14_af12 = gpioe
-        .pe14
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D12/AD12
-    let _pe15_af12 = gpioe
-        .pe15
-        .into_alternate::<12>()
-        .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D13/AD13
-    // FIXME: conflicts with Virtual COM. Left floating for now
-    // let _pd8_af12 = gpiod
-    //     .pd8
-    //     .into_alternate::<12>()
-    //     .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D14/AD14
-    // FIXME: conflicts with Virtual COM. Left floating for now
-    // let _pd9_af12 = gpiod
-    //     .pd9
-    //     .into_alternate::<12>()
-    //     .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
-    // FMC D15/AD15
-    // FIXME: only in morpho connector...
-    // let _pd10_af12 = gpiod
-    //     .pd10
-    //     .into_alternate::<12>()
-    //     .speed(stm32h5xx_hal::gpio::Speed::VeryHigh);
-
     let mut seed = 0;
     loop {
-        leds.party();
-
         write_mem(seed);
         read_mem(seed);
         seed = seed.wrapping_add(1);
