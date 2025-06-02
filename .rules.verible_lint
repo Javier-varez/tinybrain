@@ -1,0 +1,3 @@
+line-length=length:120
+explicit-begin
+parameter-name-style=parameter_style:CamelCase:localparam_style:CamelCase
