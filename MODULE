@@ -6,4 +6,7 @@ dependencies:
     version: origin/master
     hash: 8e01e748f95ad38a2dd7fc03dd14d54eb6f6e0ad
     type: ""
-flags: {}
+flags:
+  hdl-implementation: vivado
+  hdl-implementation-step: bitstream
+  hdl-simulator: xsim
