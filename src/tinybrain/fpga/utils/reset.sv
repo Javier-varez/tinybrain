@@ -15,8 +15,6 @@ module reset #(
     always_ff @(posedge sys_clk) begin
         if (counter < Cycles) begin
             counter <= counter + 1;
-        end else begin
-            counter <= counter;
         end
     end
 
