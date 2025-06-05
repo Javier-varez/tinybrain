@@ -3,8 +3,8 @@ package test
 import (
 	"tinybrain/RULES/bluespec"
 
-	"tinybrain/cpu"
-	"tinybrain/cpu/test/resources"
+	"tinybrain/fpga/cpu"
+	"tinybrain/fpga/cpu/test/resources"
 )
 
 var flags = []string{
