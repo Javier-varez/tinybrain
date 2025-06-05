@@ -26,6 +26,7 @@ module fmc #(
     wire drive_bus = read_mem && (state_q == ST_RDY);
 
     always_comb begin
+        state_d = state_q;
         unique case (state_q)
             ST_RDY: begin
                 if (addr_valid) begin
