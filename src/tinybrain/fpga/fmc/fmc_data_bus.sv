@@ -6,19 +6,7 @@ module fmc_data_bus #(
     input wire [Width-1:0] in,
     input wire tristate_out
 );
-
-    genvar pin_idx;
-    generate
-        for (pin_idx = 0; pin_idx < Width; pin_idx = pin_idx + 1) begin : gen_pins
-            IOBUF #(
-                .IOSTANDARD("LVCMOS33")
-            ) u_iobuf (
-                .IO(io_data[pin_idx]),
-                .I (in[pin_idx]),
-                .O (out[pin_idx]),
-                .T (tristate_out)
-            );
-        end : gen_pins
-    endgenerate
+    assign io_data[Width-1:0] = tristate_out ? {Width{1'bz}} : in[Width-1:0];
+    assign out[Width-1:0] = io_data[Width-1:0];
 
 endmodule
