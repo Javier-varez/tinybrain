@@ -15,3 +15,13 @@ var Test = hdl.Simulation{
 		utils.SyncLib,
 	},
 }
+
+var PkgTest = hdl.Simulation{
+	Name: "UtilsPkgTestBench",
+	Top:  "utils_pkg_tb",
+	Srcs: ins("utils_pkg_tb.sv"),
+	Libs: []string{"xil_defaultlib"},
+	Ips: []hdl.Ip{
+		utils.PkgLib,
+	},
+}

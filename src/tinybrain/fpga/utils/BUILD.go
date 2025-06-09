@@ -15,3 +15,9 @@ var SyncLib = hdl.Library{
 		"cdc_sync.sv",
 	),
 }
+
+var PkgLib = hdl.Library{
+	Srcs: ins(
+		"utils_pkg.sv",
+	),
+}
