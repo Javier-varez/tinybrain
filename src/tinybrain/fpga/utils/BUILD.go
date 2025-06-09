@@ -9,3 +9,9 @@ var ResetLib = hdl.Library{
 		"reset.sv",
 	),
 }
+
+var SyncLib = hdl.Library{
+	Srcs: ins(
+		"cdc_sync.sv",
+	),
+}
