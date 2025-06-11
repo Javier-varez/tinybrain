@@ -74,6 +74,13 @@ func (b Bluesim) Build(ctx core.Context) {
 		})
 
 		inputs = append(inputs, asInputs(copiedResources)...)
+	} else {
+		// Create empty resources directory and add as input dependency
+		ctx.AddBuildStep(core.BuildStep{
+			Out: b.resourcesDir(),
+			Cmd: fmt.Sprintf("mkdir -p %q", b.resourcesDir().Absolute()),
+		})
+		inputs = append(inputs, b.resourcesDir())
 	}
 
 	allDeps := []Library{}
