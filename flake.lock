@@ -5,11 +5,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1745353803,
-        "narHash": "sha256-p72CoOT184/9eI1NGqWcIfhYglqZ9wid55hVEYtH730=",
+        "lastModified": 1749852144,
+        "narHash": "sha256-irnAssGNkylRoF6U/yuogdZ9bVvvik+guxXY75y3jr0=",
         "owner": "javier-varez",
         "repo": "dbt",
-        "rev": "7e0e3f1339350559dbaa2b2d1d9caefa5d3ee8d0",
+        "rev": "1931a2b39f6af2da47fe129cafc9229276354b26",
         "type": "github"
       },
       "original": {
