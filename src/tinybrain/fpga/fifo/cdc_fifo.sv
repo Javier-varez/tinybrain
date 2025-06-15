@@ -26,6 +26,9 @@ module cdc_fifo
     typedef logic [IndexWidth-1:0] index_t;
 
     // FIXME: ensure that Size is a power of 2.
+    if (count_bits(Size) != 1) begin : g_check_fifo_size
+        $error($sformatf("Illegal value for parameter Size $0d", Size));
+    end
 
     // Read domain signals
     index_t read_idx_read_clk_q, write_idx_read_clk_q;

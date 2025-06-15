@@ -14,6 +14,10 @@ module utils_pkg_tb
         for (int i = 0; i < 9'h100; i++) begin
             `CHECK_EQ(gray_to_bin(bin_to_gray(i)), i);
         end
+
+        for (int i = 0; i < 16'hFFFF; i++) begin
+            `CHECK_EQ(gray_to_bin(bin_to_gray(i)), i);
+        end
     end
 
 endmodule

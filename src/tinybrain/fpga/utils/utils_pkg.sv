@@ -9,10 +9,22 @@ package utils_pkg;
 
     function automatic word_t gray_to_bin(input word_t i);
         word_t v = i;
-        v = v ^ (v >> 4);
-        v = v ^ (v >> 2);
-        v = v ^ (v >> 1);
+        for (integer i = WordWidth / 2; i > 0; i = i / 2) begin
+            v = v ^ (v >> i);
+        end
         return v;
+    endfunction
+
+    function automatic integer count_bits(input integer i);
+        integer n = 0;
+        integer v = i;
+        while (v > 0) begin
+            if (v & 1) begin
+                n += 1;
+            end
+            v = v >> 1;
+        end
+        return n;
     endfunction
 
 endpackage
