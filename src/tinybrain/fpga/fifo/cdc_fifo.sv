@@ -22,28 +22,29 @@ module cdc_fifo
     output wire logic write_valid_o,
     input wire logic [Width-1:0] data_i
 );
-    localparam integer IndexWidth = $clog2(Size);
+    // The index is 1 bit larger than it needs to in order to account for the
+    // empty/full conditions of the FIFO. This allows the indexes to point to the
+    // same FIFO entry (with an index of width IndexWidth-1) and use the MSB of
+    // the index to distinguish full (when the 2 MSBs are different in read and
+    // write indexes) from empty (when they are equal).
+    localparam integer IndexWidth = $clog2(Size) + 1;
     typedef logic [IndexWidth-1:0] index_t;
 
-    // FIXME: ensure that Size is a power of 2.
     if (count_bits(Size) != 1) begin : g_check_fifo_size
         $error($sformatf("Illegal value for parameter Size $0d", Size));
     end
 
     // Read domain signals
     index_t read_idx_read_clk_q, write_idx_read_clk_q;
-    logic empty_read_clk_q;
 
     // Write domain signals
     index_t write_idx_write_clk_q, read_idx_write_clk_q;
-    logic full_write_clk_q;
 
-    wire  can_read_read_clk = read_idx_read_clk_q != write_idx_read_clk_q;
-    wire  will_read_read_clk = can_read_read_clk && read_req_i;
+    wire can_read_read_clk = read_idx_read_clk_q != write_idx_read_clk_q;
+    wire will_read_read_clk = can_read_read_clk && read_req_i;
     assign read_valid_o = can_read_read_clk;
 
-    wire index_t next_write_idx_write_clk = write_idx_write_clk_q + 1;
-    wire can_write_write_clk = read_idx_write_clk_q != next_write_idx_write_clk;
+    wire can_write_write_clk = read_idx_write_clk_q != (write_idx_write_clk_q ^ ({1'b1, {IndexWidth-1{1'b0}}}));
     wire will_write_write_clk = can_write_write_clk && write_req_i;
     assign write_valid_o = can_write_write_clk;
 
@@ -56,7 +57,7 @@ module cdc_fifo
         if (read_rst_i) begin
             read_read_clk_q <= {Width{1'b0}};
         end else if (will_read_read_clk) begin
-            read_read_clk_q <= memory[read_idx_read_clk_q];
+            read_read_clk_q <= memory[read_idx_read_clk_q[IndexWidth-2:0]];
         end
     end
     assign data_o = read_read_clk_q;
@@ -72,7 +73,7 @@ module cdc_fifo
     // Writer implementation
     always_ff @(posedge write_clk_i) begin
         if (!write_rst_i && will_write_write_clk) begin
-            memory[write_idx_write_clk_q] <= data_i;
+            memory[write_idx_write_clk_q[IndexWidth-2:0]] <= data_i;
         end
     end
 

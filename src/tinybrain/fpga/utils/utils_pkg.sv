@@ -1,15 +1,13 @@
 package utils_pkg;
-    parameter integer WordWidth = 32;
+    parameter integer GrayWordWidth = 32;
 
-    typedef logic [WordWidth-1:0] word_t;
-
-    function automatic word_t bin_to_gray(input word_t i);
+    function automatic logic [GrayWordWidth-1:0] bin_to_gray(input logic [GrayWordWidth-1:0] i);
         return i ^ (i >> 1);
     endfunction
 
-    function automatic word_t gray_to_bin(input word_t i);
-        word_t v = i;
-        for (integer i = WordWidth / 2; i > 0; i = i / 2) begin
+    function automatic logic [GrayWordWidth-1:0] gray_to_bin(input logic [GrayWordWidth-1:0] i);
+        logic [GrayWordWidth-1:0] v = i;
+        for (integer i = GrayWordWidth / 2; i > 0; i = i / 2) begin
             v = v ^ (v >> i);
         end
         return v;

@@ -114,6 +114,7 @@ module cdc_fifo_tb ();
 
         // Push then push single entry
         push(8'hAB);
+        `CHECK_EQ(write_valid_o, 1'b1);
 
         // Give it a couple more cycles to make sure that the sync stages have
         // done its job
@@ -131,14 +132,20 @@ module cdc_fifo_tb ();
         `CHECK_EQ(write_valid_o, 1'b1);
 
         // Push full FIFO, then pop it.
-        for (int i = 0; i < Size - 1; i++) begin
+        for (int i = 0; i < Size; i++) begin
+            `CHECK_EQ(write_valid_o, 1'b1);
             push(i);
         end
+        `CHECK_EQ(read_valid_o, 1'b1);
+        `CHECK_EQ(write_valid_o, 1'b0);
 
-        for (int i = 0; i < Size - 1; i++) begin
+        for (int i = 0; i < Size; i++) begin
+            `CHECK_EQ(read_valid_o, 1'b1);
             pop(popped_data);
             `CHECK_EQ(popped_data, i);
         end
+        `CHECK_EQ(read_valid_o, 1'b0);
+        `CHECK_EQ(write_valid_o, 1'b1);
 
         $finish();
     end
