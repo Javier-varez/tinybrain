@@ -1,5 +1,5 @@
 package utils_pkg;
-    parameter integer WordWidth = 8;
+    parameter integer WordWidth = 32;
 
     typedef logic [WordWidth-1:0] word_t;
 
