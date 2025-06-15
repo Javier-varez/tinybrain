@@ -1,6 +1,6 @@
 module fifo #(
     parameter integer Size,
-    parameter integer EntrySize
+    parameter integer Width
 ) (
     input wire logic clk_i,
     input wire logic rst_i,
@@ -8,8 +8,8 @@ module fifo #(
     output wire logic write_valid_o,
     input wire logic read_req_i,
     output wire logic read_valid_o,
-    input wire logic [EntrySize-1:0] data_i,
-    output wire logic [EntrySize-1:0] data_o
+    input wire logic [Width-1:0] data_i,
+    output wire logic [Width-1:0] data_o
 );
     localparam integer IndexBits = $clog2(Size);
     typedef logic [IndexBits-1:0] index_t;
@@ -18,7 +18,7 @@ module fifo #(
     index_t write_idx_d, write_idx_q;
     logic full_q;
 
-    logic [EntrySize-1:0] memory[Size];
+    logic [Width-1:0] memory[Size];
 
     wire can_write = !full_q;
     wire can_read = full_q || (read_idx_q != write_idx_q);
@@ -29,11 +29,11 @@ module fifo #(
     wire will_read = can_read && read_req_i;
     wire will_write = can_write && write_req_i;
 
-    logic [EntrySize-1:0] read_q;
+    logic [Width-1:0] read_q;
 
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
-            read_q <= {EntrySize{1'b0}};
+            read_q <= {Width{1'b0}};
         end else if (will_read) begin
             read_q <= memory[read_idx_q];
         end

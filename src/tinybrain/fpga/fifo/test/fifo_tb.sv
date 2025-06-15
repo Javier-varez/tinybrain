@@ -12,7 +12,7 @@
 module fifo_tb ();
     localparam integer ClkPeriodNs = 10;
     localparam integer Size = 10;
-    localparam integer EntrySize = 8;
+    localparam integer Width = 8;
 
     logic clk_i;
     logic rst_i;
@@ -20,12 +20,12 @@ module fifo_tb ();
     logic write_valid_o;
     logic read_req_i;
     logic read_valid_o;
-    logic [EntrySize-1:0] data_i;
-    logic [EntrySize-1:0] data_o;
+    logic [Width-1:0] data_i;
+    logic [Width-1:0] data_o;
 
     fifo #(
-        .Size(Size),
-        .EntrySize(EntrySize)
+        .Size (Size),
+        .Width(Width)
     ) u_dut (
         .clk_i(clk_i),
         .rst_i(rst_i),
@@ -44,7 +44,7 @@ module fifo_tb ();
         end
     end
 
-    task automatic push(input logic [EntrySize-1:0] data);
+    task automatic push(input logic [Width-1:0] data);
         `CHECK_EQ(write_valid_o, 1'b1);
         if (!write_valid_o) begin
             return;
@@ -56,10 +56,10 @@ module fifo_tb ();
         @(negedge clk_i);
         write_req_i = 1'b0;
 
-        data_i = {EntrySize{1'bz}};
+        data_i = {Width{1'bz}};
     endtask
 
-    task automatic pop(output logic [EntrySize-1:0] data);
+    task automatic pop(output logic [Width-1:0] data);
         `CHECK_EQ(read_valid_o, 1'b1);
         if (!read_valid_o) begin
             return;
@@ -72,7 +72,7 @@ module fifo_tb ();
         read_req_i = 1'b0;
     endtask
 
-    task automatic push_and_pop(input logic [EntrySize-1:0] i, output logic [EntrySize-1:0] o);
+    task automatic push_and_pop(input logic [Width-1:0] i, output logic [Width-1:0] o);
         `CHECK_EQ(write_valid_o, 1'b1);
         `CHECK_EQ(read_valid_o, 1'b1);
         if (!write_valid_o || !read_valid_o) begin
@@ -89,7 +89,7 @@ module fifo_tb ();
         write_req_i = 1'b0;
     endtask
 
-    logic [EntrySize-1:0] popped_data;
+    logic [Width-1:0] popped_data;
     initial begin
         rst_i = 1;
         write_req_i = 0;
