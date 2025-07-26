@@ -19,7 +19,7 @@
         let
           pkgs = import nixpkgs { inherit system; };
         in
-        pkgs.mkShellNoCC {
+        pkgs.mkShell {
           packages = [
             dbt.packages.${system}.dbt
             pkgs.bluespec
