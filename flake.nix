@@ -26,6 +26,8 @@
             pkgs.gtkwave
             pkgs.probe-rs
             pkgs.flip-link
+            pkgs.gcc-arm-embedded-14
+            pkgs.qemu
           ];
 
         };
