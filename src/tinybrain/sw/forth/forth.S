@@ -128,6 +128,8 @@ defcode "WORD", 4, word
 
 defconst "R0", 2, rz, end_rsp
 
+// QUIT is a special word that resets the return stack pointer and re-enters the interpreter.
+// It can be called from anywhere .
 defword "QUIT", 4, quit
     .4byte forth_rz
     .4byte forth_rspstore
@@ -138,6 +140,7 @@ defword "QUIT", 4, quit
 defword "INTERPRET", 9, interpret
     // FIXME: implement properly
     .4byte forth_word
+    .4byte forth_find
     .4byte forth_exit
 
 defcode "RSPSTORE", 9, rspstore
@@ -149,13 +152,13 @@ defcode "BRANCH", 6, branch
     add r4, r0
     next
 
-// TODO: remove deadcode
-// defword "EXAMPLE", 7, example
-//     .4byte forth_lit
-//     .4byte 3
-//     .4byte forth_dup
-//     .4byte forth_add
-//     .4byte forth_exit
+defcode "FIND", 4, find
+    .global forth_find_impl
+    .type forth_find_impl, %function
+    pop { r0, r1 }
+    call_ffi forth_find_impl
+    push { r0, r1 }
+    next
 
 coldstart:
     .4byte forth_quit
@@ -167,8 +170,8 @@ enter_forth:
 // The definition for LATEST has to go after all words are defined, to make sure that they are all captured
     .data
     .align 4
-    .global latest
-latest:
+    .global forth_var_latest
+forth_var_latest:
     .4byte link
 
     .data
