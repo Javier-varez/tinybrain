@@ -48,6 +48,8 @@ func (t *ArmGcc) commonCFlags() []string {
 	flags := []string{
 		"-mcpu=cortex-m7",
 		"-mthumb",
+		"-ffunction-sections",
+		"-fdata-sections",
 		"-Wl,--gc-sections",
 		"-Wall",
 		"-Wextra",
@@ -74,14 +76,6 @@ func (t *ArmGcc) CxxFlags() []string {
 
 func (t *ArmGcc) AsFlags() []string {
 	flags := []string{"-mcpu=cortex-m7", "-mthumb"}
-
-	switch buildType.Value() {
-	case "debug":
-		flags = append(flags, "-g3")
-	case "release":
-		flags = append(flags, "-g3")
-	}
-
 	return flags
 }
 

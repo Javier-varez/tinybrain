@@ -59,5 +59,5 @@ func (b *Binary) Run(args []string) string {
 	}
 
 	compiledElf := b.getInner().Out
-	return fmt.Sprintf("qemu-system-arm -cpu cortex-m7 -machine mps2-an500 -kernel %q -nographic %s", compiledElf.Absolute(), strings.Join(qemuArgs, " "))
+	return fmt.Sprintf("qemu-system-arm -cpu cortex-m7 -machine mps2-an500 -kernel %q -display none -semihosting-config enable=true,chardev=cid -chardev stdio,id=cid %s", compiledElf.Absolute(), strings.Join(qemuArgs, " "))
 }
