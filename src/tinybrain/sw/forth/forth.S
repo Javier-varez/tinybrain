@@ -348,6 +348,49 @@ defcode "INVERT", 6, invert
     push { r0 }
     next
 
+defcode "!", 1, store
+    pop { r0, r1 }
+    str r1, [r0]
+    next
+
+defcode "@", 1, fetch
+    pop { r0 }
+    ldr r0, [r0]
+    push { r0 }
+    next
+
+defcode "+!", 2, addstore
+    pop { r0, r1 }
+    ldr r2, [r0]
+    add r2, r1
+    str r2, [r0]
+    next
+
+defcode "-!", 2, substore
+    pop { r0, r1 }
+    ldr r2, [r0]
+    sub r2, r1
+    str r2, [r0]
+    next
+
+defcode "C!", 2, storebyte
+    pop { r0, r1 }
+    strb r1, [r0]
+    next
+
+defcode "C@", 2, fetchbyte
+    pop { r0 }
+    ldrb r0, [r0]
+    push { r0 }
+    next
+
+defcode "C@C", 3, ccopy
+    pop { r0, r1 }
+    ldrb r2, [r1], #1
+    strb r2, [r0], #1
+    push { r0, r1 }
+    next
+
 defcode "EXIT", 4, exit
     poprsp r4
     next
