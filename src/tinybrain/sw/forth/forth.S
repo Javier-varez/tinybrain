@@ -50,13 +50,13 @@ forth_\label :
 .endm
 
 .macro defword name, namelen, label, flags=0
-    defheader \name, \namelen, \label, \flags
+    defheader "\name", \namelen, \label, \flags
     .4byte docol // Interpreter for the word
     // Actual code of the word
 .endm
 
 .macro defcode name, namelen, label, flags=0
-    defheader \name, \namelen, \label, \flags
+    defheader "\name", \namelen, \label, \flags
     .4byte code_forth_\label // No interpreter, jump to asm code
 
     .thumb_func
@@ -115,13 +115,84 @@ forth_var_\label :
 
 // Define all words here
 
-defcode "EXIT", 4, exit
-    poprsp r4
+defcode "DROP", 4, drop
+    pop { r0 }
     next
 
-defcode "LIT", 3, lit
-    ldr r0, [r4], #4
+defcode "SWAP", 4, swap
+    pop { r1, r2 }
+    mov r0, r2
+    push { r0, r1 }
+    next
+
+defcode "DUP", 3, dup
+    ldr r0, [sp]
     push { r0 }
+    next
+
+defcode "OVER", 4, over
+    ldr r0, [sp, #4]
+    push { r0 }
+    next
+
+defcode "ROT", 3, rot
+    pop { r1, r2, r3 }
+    mov r0, r3
+    push { r0, r1, r2 }
+    next
+
+defcode "-ROT", 4, neg_rot
+    pop { r0, r1, r2 }
+    mov r3, r0
+    push { r1, r2, r3 }
+    next
+
+defcode "2DROP", 5, two_drop
+    pop { r0 }
+    pop { r0 }
+    next
+
+defcode "2DUP", 4, two_dup
+    ldr r0, [sp]
+    ldr r1, [sp, #4]
+    push { r0, r1 }
+    next
+
+defcode "2SWAP", 5, two_swap
+    pop { r0, r1, r2, r3 }
+    push { r0, r1 }
+    push { r2, r3 }
+    next
+
+defcode "?DUP", 4, qdup
+    ldr r0, [sp]
+    cmp r0, #0
+    it ne
+    pushne { r0 }
+    next
+
+defcode "1+", 2, incr
+    ldr r0, [sp]
+    add r0, #1
+    str r0, [sp]
+    next
+
+defcode "1-", 2, decr
+    ldr r0, [sp]
+    sub r0, #1
+    str r0, [sp]
+    next
+
+defcode "4+", 2, incr4
+    ldr r0, [sp]
+    add r0, #4
+    str r0, [sp]
+    next
+
+defcode "4-", 2, decr4
+    ldr r0, [sp]
+    sub r0, #4
+    str r0, [sp]
     next
 
 defcode "+", 1, add
@@ -142,16 +213,148 @@ defcode "*", 1, mult
     push { r0 }
     next
 
-defcode "/", 1, div
+defcode "/MOD", 4, divmod
+    pop { r1, r2 }
+    sdiv r0, r1, r2
+    mls r1, r0, r2, r1
+    push { r0, r1 }
+    next
+
+defcode "=", 1, equ
     pop { r0, r1 }
-    sdiv r0, r1
+    sub r1, r0, r1
+    neg r0, r1
+    adc r0, r0, r1
     push { r0 }
     next
 
-defcode "DUP", 3, dup
+defcode "<>", 2, nequ
+    pop { r0, r1 }
+    subs r0, r1
+    it ne
+    movne r0, #1
+    push { r0 }
+    next
+
+defcode "<", 1, less_than
+    pop { r0, r1 }
+    subs r0, r1
+    ite gt
+    movgt r0, #1
+    movle r0, #0
+    push { r0 }
+    next
+
+defcode ">", 1, greater_than
+    pop { r0, r1 }
+    subs r0, r1
+    ite lt
+    movlt r0, #1
+    movge r0, #0
+    push { r0 }
+    next
+
+defcode "<=", 2, less_eq
+    pop { r0, r1 }
+    subs r0, r1
+    ite ge
+    movge r0, #1
+    movlt r0, #0
+    push { r0 }
+    next
+
+defcode ">=", 2, greater_eq
+    pop { r0, r1 }
+    subs r0, r1
+    ite le
+    movle r0, #1
+    movgt r0, #0
+    push { r0 }
+    next
+
+defcode "0=", 2, zequ
     pop { r0 }
-    mov r1, r0
-    push { r0, r1 }
+    // (clz(r0) >> 5), is only 1 for r0 == 0
+    clz r0, r0
+    lsr r0, r0, #5
+    push { r0 }
+    next
+
+defcode "0<>", 3, znequ
+    pop { r0 }
+    cmp r0, #0
+    it ne
+    movne r0, #1
+    push { r0 }
+    next
+
+defcode "0<", 2, zless_than
+    pop { r0 }
+    cmp r0, #0
+    ite lt
+    movlt r0, #1
+    movge r0, #0
+    push { r0 }
+    next
+
+defcode "0>", 2, zgreater_than
+    pop { r0 }
+    cmp r0, #0
+    ite gt
+    movgt r0, #1
+    movle r0, #0
+    push { r0 }
+    next
+
+defcode "0<=", 3, zless_eq
+    pop { r0 }
+    cmp r0, #0
+    ite le
+    movle r0, #1
+    movgt r0, #0
+    push { r0 }
+    next
+
+defcode "0>=", 3, zgreater_eq
+    pop { r0 }
+    cmp r0, #0
+    ite ge
+    movge r0, #1
+    movlt r0, #0
+    push { r0 }
+    next
+
+defcode "AND", 3, and
+    pop { r0, r1 }
+    and r0, r1
+    push { r0 }
+    next
+
+defcode "OR", 2, or
+    pop { r0, r1 }
+    orr r0, r1
+    push { r0 }
+    next
+
+defcode "XOR", 3, xor
+    pop { r0, r1 }
+    eor r0, r1
+    push { r0 }
+    next
+
+defcode "INVERT", 6, invert
+    pop { r0 }
+    mvn r0, r0
+    push { r0 }
+    next
+
+defcode "EXIT", 4, exit
+    poprsp r4
+    next
+
+defcode "LIT", 3, lit
+    ldr r0, [r4], #4
+    push { r0 }
     next
 
 defcode "KEY", 3, key
