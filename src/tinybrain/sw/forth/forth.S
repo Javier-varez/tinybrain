@@ -510,8 +510,6 @@ enter_forth:
     ldr r4, =coldstart
     next
 
-// The definition for LATEST has to go after all words are defined, to make sure that they are all captured
-defvar "LATEST", 6, latest, 0, link
 defvar "STATE", 5, state // 0 -> Immediate mode. 1 -> Compilation mode
 defvar "HERE", 4, here
 defvar "S0", 2, sz
@@ -523,6 +521,9 @@ defconst "R0", 2, rz, end_rsp
 defconst "F_IMMED", 7, __f_immed, f_immed
 defconst "F_HIDDEN", 8, __f_hidden, f_hidden
 defconst "F_LENMASK", 9, __f_lenmask, f_lenmask
+
+// The definition for LATEST has to go after all words are defined, to make sure that they are all captured
+defvar "LATEST", 6, latest, 0, link
 
     .data
     .align 2
