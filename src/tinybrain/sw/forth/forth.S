@@ -130,6 +130,24 @@ defcode "+", 1, add
     push { r0 }
     next
 
+defcode "-", 1, sub
+    pop { r0, r1 }
+    sub r0, r1
+    push { r0 }
+    next
+
+defcode "*", 1, mult
+    pop { r0, r1 }
+    mul r0, r1
+    push { r0 }
+    next
+
+defcode "/", 1, div
+    pop { r0, r1 }
+    sdiv r0, r1
+    push { r0 }
+    next
+
 defcode "DUP", 3, dup
     pop { r0 }
     mov r1, r0
@@ -272,24 +290,5 @@ end_rsp:
     .global main
     .type main, %function
 main:
-    .global sys_exit
-    .type sys_exit, %function
-    .global sys_writec
-    .type sys_writec, %function
-
-    mov r0, #'h'
-    bl sys_writec
-    mov r0, #'e'
-    bl sys_writec
-    mov r0, #'l'
-    bl sys_writec
-    mov r0, #'l'
-    bl sys_writec
-    mov r0, #'o'
-    bl sys_writec
-    mov r0, #'\n'
-    bl sys_writec
-
     b enter_forth
-
     bl sys_exit
