@@ -203,7 +203,7 @@ defcode "INTERPRET", 9, interpret
     call_ffi forth_number_impl
 
     cmp r1, #1
-    bne 4f
+    bne 4f // Unknown word, handle error
     push { r0 }
     next
 
