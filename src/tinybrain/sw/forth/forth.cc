@@ -121,6 +121,47 @@ extern uint32_t forth_var_latest;
 
   return std::bit_cast<uint64_t>(result);
 }
+
+[[nodiscard]] uint64_t forth_number_impl(const size_t wordBytes,
+                                         const uintptr_t wordBase) noexcept {
+  const char *const str = reinterpret_cast<const char *>(wordBase);
+
+  struct Result final {
+    int32_t number;
+    uint32_t ok;
+  };
+
+  Result result{
+      .number = 0,
+      .ok = 0,
+  };
+
+  if (wordBytes == 0) {
+    return std::bit_cast<uint64_t>(result);
+  }
+
+  size_t i = 0;
+  int32_t sign = 1;
+  if (str[i] == '-') {
+    sign = -1;
+    i++;
+  }
+
+  for (; i < wordBytes; i++) {
+    if (str[i] < '0' || str[i] > '9') {
+      return std::bit_cast<uint64_t>(result);
+    }
+
+    const int32_t cur = str[i] - '0';
+    result.number = result.number * 10 + cur;
+  }
+
+  result.ok = 1;
+  result.number *= sign;
+  return std::bit_cast<uint64_t>(result);
+}
+
+void forth_dot_impl(const uint32_t value) { debug_print(value); }
 }
 
 } // namespace tinybrain::sw::forth

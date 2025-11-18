@@ -21,7 +21,7 @@
 .endm
 
     .text
-    .align 4
+    .align 2
     .thumb_func
     .global docol
 docol:
@@ -35,35 +35,30 @@ docol:
 
 .set link, 0
 
-.macro defword name, namelen, label, flags=0
+.macro defheader name, namelen, label, flags=0
     .text
-    .align 4
+    .align 2
     .global word_forth_\label
 word_forth_\label :
     .4byte link  // Setting the link to the previously-defined word. This is done at compile-time, as link is redefined
     .set link, word_forth_\label
     .byte \flags + \namelen
     .ascii "\name"
-    .align 4
+    .align 2
     .global forth_\label
 forth_\label :
-    .4byte docol
+.endm
+
+.macro defword name, namelen, label, flags=0
+    defheader \name, \namelen, \label, \flags
+    .4byte docol // Interpreter for the word
     // Actual code of the word
 .endm
 
 .macro defcode name, namelen, label, flags=0
-    .text
-    .align 4
-    .global word_\label
-word_forth_\label :
-    .4byte link
-    .set link, word_forth_\label
-    .byte \flags + \namelen
-    .ascii "\name"
-    .align 4
-    .global \label
-forth_\label :
-    .4byte code_forth_\label
+    defheader \name, \namelen, \label, \flags
+    .4byte code_forth_\label // No interpreter, jump to asm code
+
     .thumb_func
     .global code_forth_\label
     .type code_forth_\label , %function
@@ -78,6 +73,19 @@ code_forth_\label :
     next
 .endm
 
+.macro defvar name, namelen, label, flags=0, initial=0
+    defcode \name, \namelen, \label, \flags
+    ldr r0, =forth_var_\label
+    push { r0 }
+    next
+
+    .data
+    .align 2
+    .global forth_var_\label
+forth_var_\label :
+    .4byte \initial
+.endm
+
 .macro call_ffi target
     mov r7, sp
     and r10, r7, #0xFFFFFFF0
@@ -86,6 +94,24 @@ code_forth_\label :
     bl \target
     add sp, r7
 .endm
+
+// C++ helpers
+.global forth_find_impl
+.type forth_find_impl, %function
+
+.global forth_key_impl
+.type forth_key_impl, %function
+
+.global forth_word_buffer
+
+.global forth_word_impl
+.type forth_word_impl, %function
+
+.global forth_number_impl
+.type forth_number_impl, %function
+
+.global forth_dot_impl
+.type forth_dot_impl, %function
 
 // Define all words here
 
@@ -111,22 +137,20 @@ defcode "DUP", 3, dup
     next
 
 defcode "KEY", 3, key
-    .global forth_key_impl
-    .type forth_key_impl, %function
     call_ffi forth_key_impl
     push { r0 }
     next
 
 defcode "WORD", 4, word
-    .global forth_word_buffer
-    .global forth_word_impl
-    .type forth_word_impl, %function
     call_ffi forth_word_impl
     ldr r1, =forth_word_buffer
     push { r0, r1 }
     next
 
-defconst "R0", 2, rz, end_rsp
+defcode ".", 1, print
+    pop { r0 }
+    call_ffi forth_dot_impl
+    next
 
 // QUIT is a special word that resets the return stack pointer and re-enters the interpreter.
 // It can be called from anywhere .
@@ -137,11 +161,68 @@ defword "QUIT", 4, quit
     .4byte forth_branch
     .4byte -8
 
-defword "INTERPRET", 9, interpret
-    // FIXME: implement properly
-    .4byte forth_word
-    .4byte forth_find
-    .4byte forth_exit
+defcode "INTERPRET", 9, interpret
+    // FIXME: Add compilation support
+
+    // Read a word from the input
+    call_ffi forth_word_impl
+    ldr r1, =forth_word_buffer
+    mov r11, r0 // Save for later, in case we don't find the word right away
+
+    // Try to find the word in the dictionary
+    call_ffi forth_find_impl
+
+    cmp r0, #0
+    beq 1f // not found
+    bpl 2f // immediate
+
+    // found, not immediate
+    ldr r0, =forth_var_state
+    ldr r0, [r0]
+    cmp r0, #0
+
+    bne 3f // compilation mode
+
+    // Interpret word
+
+    add r0, r1, #4 // skip ptr
+    ldrb r1, [r0]
+    and r1, f_lenmask
+    // align up to 4-byte boundary and skip len + flags byte
+    add r1, #4
+    and r1, #~3
+    add r6, r0, r1
+
+    // execute word
+    ldr pc, [r6]
+
+1:
+    // Not found. Check if it is a number, then add it
+    mov r0, r11 // word len
+    ldr r1, =forth_word_buffer
+    call_ffi forth_number_impl
+
+    cmp r1, #1
+    bne 4f
+    push { r0 }
+    next
+
+2:
+    // Immediate
+    // FIXME: Not implemented
+    bkpt #0x0000
+
+3:
+    // Compile
+    // FIXME: Not implemented
+    bkpt #0x0000
+
+    next
+
+4:
+    // Number parsing failed
+    // FIXME: Not implemented
+    bkpt #0x0000
 
 defcode "RSPSTORE", 9, rspstore
     pop { r5 }
@@ -153,8 +234,6 @@ defcode "BRANCH", 6, branch
     next
 
 defcode "FIND", 4, find
-    .global forth_find_impl
-    .type forth_find_impl, %function
     pop { r0, r1 }
     call_ffi forth_find_impl
     push { r0, r1 }
@@ -168,20 +247,27 @@ enter_forth:
     next
 
 // The definition for LATEST has to go after all words are defined, to make sure that they are all captured
-    .data
-    .align 4
-    .global forth_var_latest
-forth_var_latest:
-    .4byte link
+defvar "LATEST", 6, latest, 0, link
+defvar "STATE", 5, state // 0 -> Immediate mode. 1 -> Compilation mode
+defvar "HERE", 4, here
+defvar "S0", 2, sz
+
+.set tinybrain_forth_version, 48
+
+defconst "VERSION", 7, version, tinybrain_forth_version
+defconst "R0", 2, rz, end_rsp
+defconst "F_IMMED", 7, __f_immed, f_immed
+defconst "F_HIDDEN", 8, __f_hidden, f_hidden
+defconst "F_LENMASK", 9, __f_lenmask, f_lenmask
 
     .data
-    .align 4
+    .align 2
 begin_rsp:
     .skip 4096
 end_rsp:
 
     .text
-    .align 4
+    .align 2
     .thumb_func
     .global main
     .type main, %function
