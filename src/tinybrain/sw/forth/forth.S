@@ -223,7 +223,7 @@ defcode "/MOD", 4, divmod
 defcode "=", 1, equ
     pop { r0, r1 }
     sub r1, r0, r1
-    neg r0, r1
+    negs r0, r1
     adc r0, r0, r1
     push { r0 }
     next
