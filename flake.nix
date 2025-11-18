@@ -1,7 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
-    dbt.url = "github:javier-varez/dbt";
+    dbt.url = "github:javier-varez/dbt/runOutOfNinja";
   };
 
   outputs =
