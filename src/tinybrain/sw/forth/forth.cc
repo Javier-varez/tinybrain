@@ -58,7 +58,7 @@ bool WordHeader::matches(const char *const otherBase,
 }
 
 [[nodiscard]] bool WordHeader::is_immediate() const noexcept {
-  constexpr static uint8_t IMM_FLAG = 0x20;
+  constexpr static uint8_t IMM_FLAG = 0x80;
   return (flags_and_length & IMM_FLAG) != 0;
 }
 
@@ -210,6 +210,17 @@ extern uint32_t forth_var_latest;
 void forth_dot_impl(const uint32_t value) {
   debug_print(value);
   debug_print("\n");
+}
+
+void forth_emit_impl(const uint32_t value) { sys_writec(value & 0xFF); }
+
+void forth_unk_word(const size_t wordBytes, const uintptr_t wordBase) {
+  debug_print("Unknown word \"");
+  debug_print(reinterpret_cast<const char *>(wordBase), wordBytes);
+  debug_print("\"\n");
+
+  // Consume remaining input, to fall back into the prompt
+  line_rd_idx = line_wr_idx;
 }
 }
 

@@ -110,6 +110,9 @@ forth_var_\label :
 .global forth_number_impl
 .type forth_number_impl, %function
 
+.global forth_emit_impl
+.type forth_emit_impl, %function
+
 .global forth_dot_impl
 .type forth_dot_impl, %function
 
@@ -405,16 +408,139 @@ defcode "KEY", 3, key
     push { r0 }
     next
 
+defcode "EMIT", 4, emit
+    pop { r0 }
+    call_ffi forth_emit_impl
+    next
+
 defcode "WORD", 4, word
     call_ffi forth_word_impl
     ldr r1, =forth_word_buffer
     push { r0, r1 }
     next
 
+defcode "NUMBER", 6, number
+    pop { r0, r1 }
+    call_ffi forth_number_impl
+    push { r0 }
+    next
+
+defcode ">CFA", 4, cfa
+    pop { r0 }
+    add r0, r0, #4
+    ldrb r1, [r0]
+    and r1, f_lenmask
+    // align up to 4-byte boundary and skip len + flags byte
+    add r1, #4
+    and r1, #~3
+    add r0, r1
+    push { r0 }
+    next
+
+defcode ">DFA", 4, dfa
+    pop { r0 }
+    add r0, r0, #4
+    ldrb r1, [r0]
+    and r1, f_lenmask
+    // align up to 4-byte boundary and skip len + flags byte + codeword
+    add r1, #8
+    and r1, #~3
+    add r0, r1
+    push { r0 }
+    next
+
 defcode ".", 1, print
     pop { r0 }
     call_ffi forth_dot_impl
     next
+
+defcode "CREATE", 6, create
+    // Find where our word will be located
+    ldr r0, =forth_var_here
+    ldr r0, [r0]
+
+    ldr r1, =forth_var_latest
+    ldr r1, [r1]
+
+    // Create the link
+    str r1, [r0], #4
+
+    pop { r2, r3 } // read name length (r0) and base (r1)
+    strb r2, [r0], #1 // store length
+    // Copy name
+    cmp r2, #0
+1:
+    beq 2f
+    ldrb r1, [r3], #1
+    strb r1, [r0], #1
+    subs r2, #1
+    b 1b
+2:  // Pad alignment
+    add r0, #3
+    and r0, #~3
+
+    // Update here and latest
+    ldr r1, =forth_var_here
+    ldr r2, =forth_var_latest
+
+    ldr r3, [r1]
+    str r3, [r2]
+    str r0, [r1]
+    next
+
+defcode ",", 1, comma
+    pop { r0 }
+    ldr r1, =forth_var_here
+    ldr r2, [r1]
+    str r0, [r2], #4
+    str r2, [r1]
+    next
+
+defcode "[", 1, lbrace, f_immed
+    mov r0, #0
+    ldr r1, =forth_var_state
+    str r0, [r1]
+    next
+
+defcode "]", 1, rbrace
+    mov r0, #1
+    ldr r1, =forth_var_state
+    str r0, [r1]
+    next
+
+defcode "HIDDEN", 6, hidden
+    pop { r0 }
+    ldrb r1, [r0, #4]
+    eor r1, #f_immed
+    strb r1, [r0, #4]
+    next
+
+defword ":", 1, colon
+    .4byte forth_word
+    .4byte forth_create
+
+    .4byte forth_lit
+    .4byte docol
+    .4byte forth_comma
+
+    .4byte forth_latest
+    .4byte forth_fetch
+    .4byte forth_hidden
+
+    .4byte forth_rbrace
+    .4byte forth_exit
+
+defword ";", 1, semicolon, f_immed
+    .4byte forth_lit
+    .4byte forth_exit
+    .4byte forth_comma
+
+    .4byte forth_latest
+    .4byte forth_fetch
+    .4byte forth_hidden
+
+    .4byte forth_lbrace
+    .4byte forth_exit
 
 // QUIT is a special word that resets the return stack pointer and re-enters the interpreter.
 // It can be called from anywhere .
@@ -426,8 +552,6 @@ defword "QUIT", 4, quit
     .4byte -8
 
 defcode "INTERPRET", 9, interpret
-    // FIXME: Add compilation support
-
     // Read a word from the input
     call_ffi forth_word_impl
     ldr r1, =forth_word_buffer
@@ -437,18 +561,18 @@ defcode "INTERPRET", 9, interpret
     call_ffi forth_find_impl
 
     cmp r0, #0
-    beq 1f // not found
-    bpl 2f // immediate
+    bgt 1f // immediate
+    beq 2f // not found
 
     // found, not immediate
     ldr r0, =forth_var_state
     ldr r0, [r0]
     cmp r0, #0
 
-    bne 3f // compilation mode
+    bne 4f // compilation mode of known word
 
+1:
     // Interpret word
-
     add r0, r1, #4 // skip ptr
     ldrb r1, [r0]
     and r1, f_lenmask
@@ -460,33 +584,55 @@ defcode "INTERPRET", 9, interpret
     // execute word
     ldr pc, [r6]
 
-1:
+2:
     // Not found. Check if it is a number, then add it
     mov r0, r11 // word len
     ldr r1, =forth_word_buffer
     call_ffi forth_number_impl
 
     cmp r1, #1
-    bne 4f // Unknown word, handle error
+    bne 5f // Unknown word, handle error
+
+    ldr r1, =forth_var_state
+    ldr r1, [r1]
+    cmp r1, #0
+    bne 3f
     push { r0 }
     next
 
-2:
-    // Immediate
-    // FIXME: Not implemented
-    bkpt #0x0000
-
 3:
-    // Compile
-    // FIXME: Not implemented
-    bkpt #0x0000
-
+    // Append LIT
+    ldr r1, =forth_var_here
+    ldr r2, =forth_lit
+    ldr r3, [r1]
+    str r2, [r3], #4
+    str r0, [r3], #4
+    str r3, [r1]
     next
 
 4:
+    // >CFA
+    add r0, r1, #4 // skip ptr
+    ldrb r1, [r0]
+    and r1, f_lenmask
+    // align up to 4-byte boundary and skip len + flags byte
+    add r1, #4
+    and r1, #~3
+    add r0, r0, r1
+
+    // Append word
+    ldr r1, =forth_var_here
+    ldr r2, [r1]
+    str r0, [r2], #4
+    str r2, [r1]
+    next
+
+5:
     // Number parsing failed
-    // FIXME: Not implemented
-    bkpt #0x0000
+    mov r0, r11
+    ldr r1, =forth_word_buffer
+    call_ffi forth_unk_word
+    next
 
 defcode "RSPSTORE", 9, rspstore
     pop { r5 }
@@ -503,16 +649,10 @@ defcode "FIND", 4, find
     push { r0, r1 }
     next
 
-coldstart:
-    .4byte forth_quit
-
-enter_forth:
-    ldr r4, =coldstart
-    next
-
 defvar "STATE", 5, state // 0 -> Immediate mode. 1 -> Compilation mode
 defvar "HERE", 4, here
 defvar "S0", 2, sz
+defvar "BASE", 4, base, 0, 16
 
 .set tinybrain_forth_version, 48
 
@@ -522,6 +662,38 @@ defconst "F_IMMED", 7, __f_immed, f_immed
 defconst "F_HIDDEN", 8, __f_hidden, f_hidden
 defconst "F_LENMASK", 9, __f_lenmask, f_lenmask
 
+defcode ">R", 2, to_rsp
+    pop { r0 }
+    pushrsp r0
+    next
+
+defcode "R>", 2, from_rsp
+    poprsp r0
+    push { r0 }
+    next
+
+defcode "RSP@", 4, fetch_rsp
+    push { r5 }
+    next
+
+defcode "RSP!", 4, store_rsp
+    pop { r5 }
+    next
+
+defcode "RDROP", 5, rdrop
+    poprsp r0 // throw away the result
+    next
+
+defcode "DSP@", 4, fetch_dsp
+    mov r0, sp
+    push { r0 }
+    next
+
+defcode "DSP!", 4, store_dsp
+    pop { r0 }
+    mov sp, r0
+    next
+
 // The definition for LATEST has to go after all words are defined, to make sure that they are all captured
 defvar "LATEST", 6, latest, 0, link
 
@@ -530,6 +702,27 @@ defvar "LATEST", 6, latest, 0, link
 begin_rsp:
     .skip 4096
 end_rsp:
+
+    // Leave some space between stack and data
+    .skip 32
+
+    .data
+    .align 2
+begin_compile_space:
+    .skip 4096
+end_compile_space:
+
+
+    .text
+coldstart:
+    .4byte forth_quit
+
+enter_forth:
+    ldr r4, =coldstart
+    ldr r1, =begin_compile_space
+    ldr r0, =forth_var_here
+    str r1, [r0]
+    next
 
     .text
     .align 2
