@@ -515,7 +515,7 @@ defcode "HIDDEN", 6, hidden
     strb r1, [r0, #4]
     next
 
-defcode "IMMEDIATE", 9, immediate
+defcode "IMMEDIATE", 9, immediate, f_immed
     ldr r0, =forth_var_latest
     ldr r0, [r0]
 
