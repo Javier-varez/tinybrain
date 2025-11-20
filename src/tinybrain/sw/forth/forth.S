@@ -660,6 +660,17 @@ defcode "BRANCH", 6, branch
     add r4, r0
     next
 
+defcode "0BRANCH", 7, zbranch
+    pop { r0 }
+    cmp r0, #0
+    itte eq
+    // Branch taken
+    ldreq r0, [r4]
+    addeq r4, r0
+    // Branch not taken
+    addne r4, #4 // Skip offset
+    next
+
 defcode "FIND", 4, find
     pop { r0, r1 }
     call_ffi forth_find_impl
