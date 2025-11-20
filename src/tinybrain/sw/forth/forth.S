@@ -206,8 +206,8 @@ defcode "+", 1, add
 
 defcode "-", 1, sub
     pop { r0, r1 }
-    sub r0, r1
-    push { r0 }
+    sub r1, r0
+    push { r1 }
     next
 
 defcode "*", 1, mult
