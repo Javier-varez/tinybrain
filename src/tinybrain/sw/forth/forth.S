@@ -524,6 +524,14 @@ defcode "IMMEDIATE", 9, immediate
     str r1, [r0, #4]
     next
 
+// defined as immediate so that it works in compiled code
+defword "'", 1, tick, f_immed
+    .4byte forth_word
+    .4byte forth_find
+    .4byte forth_drop
+    .4byte forth_cfa
+    .4byte forth_exit
+
 defword ":", 1, colon
     .4byte forth_word
     .4byte forth_create
