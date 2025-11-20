@@ -515,6 +515,15 @@ defcode "HIDDEN", 6, hidden
     strb r1, [r0, #4]
     next
 
+defcode "IMMEDIATE", 9, immediate
+    ldr r0, =forth_var_latest
+    ldr r0, [r0]
+
+    ldr r1, [r0, #4]
+    eor r1, #f_immed
+    str r1, [r0, #4]
+    next
+
 defword ":", 1, colon
     .4byte forth_word
     .4byte forth_create
