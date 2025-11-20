@@ -36,6 +36,7 @@ struct WordHeader final {
   [[nodiscard]] size_t bytes() const noexcept;
 
   [[nodiscard]] bool is_immediate() const noexcept;
+  [[nodiscard]] bool is_hidden() const noexcept;
 };
 
 [[nodiscard]] size_t WordHeader::bytes() const noexcept {
@@ -60,6 +61,11 @@ bool WordHeader::matches(const char *const otherBase,
 [[nodiscard]] bool WordHeader::is_immediate() const noexcept {
   constexpr static uint8_t IMM_FLAG = 0x80;
   return (flags_and_length & IMM_FLAG) != 0;
+}
+
+[[nodiscard]] bool WordHeader::is_hidden() const noexcept {
+  constexpr static uint8_t HIDDEN_FLAG = 0x20;
+  return (flags_and_length & HIDDEN_FLAG) != 0;
 }
 
 constexpr static size_t MAX_LINE_LENGTH = 512u;
@@ -155,7 +161,8 @@ extern uint32_t forth_var_latest;
   while (current_word != 0) {
     const WordHeader &header =
         *reinterpret_cast<const WordHeader *>(current_word);
-    if (header.matches(reinterpret_cast<const char *>(nameBase), nameBytes)) {
+    if (!header.is_hidden() &&
+        header.matches(reinterpret_cast<const char *>(nameBase), nameBytes)) {
       result.addr = current_word;
       result.status = header.is_immediate() ? FindStatus::IMMEDIATE
                                             : FindStatus::NOT_IMMEDIATE;
