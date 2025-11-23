@@ -6,6 +6,6 @@ import (
 
 var ForthInterpreter = cc.Binary{
 	Out:          out("forth-fw"),
-	Srcs:         ins("startup.cc", "semihosting.S", "forth.S", "forth.cc", "debug.cc"),
+	Srcs:         ins("startup.cc", "semihosting.S", "forth.S", "forth.cc", "debug.cc", "libc.cc"),
 	LinkerScript: in("cortex-m.ld"),
 }
