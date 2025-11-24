@@ -747,6 +747,7 @@ coldstart:
 
 enter_forth:
     ldr r4, =coldstart
+    ldr r5, =end_rsp
     ldr r1, =begin_compile_space
     ldr r0, =forth_var_here
     str r1, [r0]
