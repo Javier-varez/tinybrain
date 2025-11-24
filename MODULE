@@ -2,9 +2,9 @@ version: 3
 layout: cpp
 dependencies:
   dbt-rules:
-    url: https://github.com/daedaleanai/dbt-rules.git
-    version: origin/master
-    hash: 8e01e748f95ad38a2dd7fc03dd14d54eb6f6e0ad
+    url: https://github.com/javier-varez/dbt-rules.git
+    version: origin/runOutOfNinja
+    hash: ebdac5d4d291477965aa321edc84becdf06f62c3
     type: ""
 flags:
   hdl-implementation: vivado
