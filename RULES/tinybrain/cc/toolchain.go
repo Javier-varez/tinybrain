@@ -5,6 +5,8 @@ import (
 	"dbt-rules/RULES/core"
 )
 
+var cpuArgs []string = []string{"-mcpu=cortex-m7", "-mthumb"}
+
 var buildType = core.StringFlag{
 	Name:          "build-type",
 	Description:   "The C++ build type to execute",
@@ -29,7 +31,7 @@ func (t *ArmGcc) CxxCompiler() string {
 }
 
 func (t *ArmGcc) Assembler() string {
-	return "arm-none-eabi-as"
+	return "arm-none-eabi-gcc"
 }
 
 func (t *ArmGcc) Archiver() string {
@@ -46,8 +48,6 @@ func (t *ArmGcc) ObjcopyCommand() string {
 
 func (t *ArmGcc) commonCFlags() []string {
 	flags := []string{
-		"-mcpu=cortex-m7",
-		"-mthumb",
 		"-ffunction-sections",
 		"-fdata-sections",
 		"-Wl,--gc-sections",
@@ -55,6 +55,7 @@ func (t *ArmGcc) commonCFlags() []string {
 		"-Wextra",
 		"-Werror",
 	}
+	flags = append(flags, cpuArgs...)
 
 	switch buildType.Value() {
 	case "debug":
@@ -75,8 +76,7 @@ func (t *ArmGcc) CxxFlags() []string {
 }
 
 func (t *ArmGcc) AsFlags() []string {
-	flags := []string{"-mcpu=cortex-m7", "-mthumb"}
-	return flags
+	return t.commonCFlags()
 }
 
 func (t *ArmGcc) LdFlags() []string {
@@ -86,7 +86,7 @@ func (t *ArmGcc) LdFlags() []string {
 	} else {
 		flags = append(flags, "--specs=nosys.specs")
 	}
-	flags = append(flags, "--specs=nano.specs")
+	flags = append(flags, "--specs=nano.specs", "-nostartfiles", "-Wl,--build-id=none")
 	return flags
 }
 
