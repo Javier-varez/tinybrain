@@ -61,7 +61,7 @@ func (t *ArmGcc) commonCFlags() []string {
 	case "debug":
 		flags = append(flags, "-g3")
 	case "release":
-		flags = append(flags, "-g3", "-Os")
+		flags = append(flags, "-g3", "-Os", "-DNDEBUG")
 	}
 
 	return flags
@@ -86,7 +86,7 @@ func (t *ArmGcc) LdFlags() []string {
 	} else {
 		flags = append(flags, "--specs=nosys.specs")
 	}
-	flags = append(flags, "--specs=nano.specs", "-nostartfiles", "-Wl,--build-id=none")
+	flags = append(flags, "--specs=nano.specs", "-Wl,--build-id=none")
 	return flags
 }
 

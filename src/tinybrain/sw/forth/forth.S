@@ -742,9 +742,15 @@ end_compile_space:
 
 
     .text
+    .align 2
 coldstart:
     .4byte forth_quit
 
+    .text
+    .align 2
+    .thumb_func
+    .global enter_forth
+    .type enter_forth, %function
 enter_forth:
     ldr r4, =coldstart
     ldr r5, =end_rsp
@@ -752,12 +758,3 @@ enter_forth:
     ldr r0, =forth_var_here
     str r1, [r0]
     next
-
-    .text
-    .align 2
-    .thumb_func
-    .global main
-    .type main, %function
-main:
-    b enter_forth
-    bl sys_exit
