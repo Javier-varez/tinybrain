@@ -218,8 +218,8 @@ defcode "*", 1, mult
 
 defcode "/MOD", 4, divmod
     pop { r1, r2 }
-    sdiv r0, r1, r2
-    mls r1, r0, r2, r1
+    sdiv r0, r2, r1
+    mls r1, r0, r1, r2
     push { r0, r1 }
     next
 
