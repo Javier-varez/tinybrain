@@ -530,6 +530,14 @@ defword "'", 1, tick, f_immed
     .4byte forth_find
     .4byte forth_drop
     .4byte forth_cfa
+    .4byte forth_state
+    .4byte forth_fetch
+    .4byte forth_zbranch
+    .4byte 20
+    .4byte forth_lit
+    .4byte forth_lit
+    .4byte forth_comma
+    .4byte forth_comma
     .4byte forth_exit
 
 defword ":", 1, colon
