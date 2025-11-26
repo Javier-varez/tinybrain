@@ -51,6 +51,7 @@ func (t *ArmGcc) commonCFlags() []string {
 		"-ffunction-sections",
 		"-fdata-sections",
 		"-Wl,--gc-sections",
+		"-fno-use-cxa-atexit",
 		"-Wall",
 		"-Wextra",
 		"-Werror",
@@ -86,7 +87,7 @@ func (t *ArmGcc) LdFlags() []string {
 	} else {
 		flags = append(flags, "--specs=nosys.specs")
 	}
-	flags = append(flags, "--specs=nano.specs", "-Wl,--build-id=none")
+	flags = append(flags, "--specs=nano.specs", "-Wl,--build-id=none", "-Wl,--orphan-handling=error", "-nostartfiles")
 	return flags
 }
 

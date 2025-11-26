@@ -8,22 +8,20 @@ MEMORY
 
 SECTIONS
 {
-	.root_section :
+	.text :
 	{
 		KEEP(*(.exception_table))
 		KEEP(*(.interrupt_table))
-		*startup.o(.text*)
 
-		*(.text.__aeabi_memcpy)
-		*(.text.__aeabi_memset)
-		*(.text.__aeabi_memclr)
-		*(.text.memcpy)
-		*(.text.memset)
-	} > FLASH
-
-	.text :
-	{
 		*(.text*)
+		*(.glue_7)
+		*(.glue_7t)
+	    *(.vfp11_veneer)
+	    *(.v4_bx)
+        *(.iplt)
+        *(.rel.iplt)
+        *(.igot.plt)
+
 		*(.rodata*)
 
 		KEEP(*(.init))
@@ -45,18 +43,6 @@ SECTIONS
 
 		KEEP(*(.eh_frame*))
 	} > FLASH
-
-	.ARM.extab :
-	{
-		*(.ARM.extab* .gnu.linkonce.armextab.*)
-	} > FLASH
-
-	__exidx_start = .;
-	.ARM.exidx :
-	{
-		*(.ARM.exidx* .gnu.linkonce.armexidx.*)
-	} > FLASH
-	__exidx_end = .;
 
 	.data :
 	{
@@ -84,7 +70,6 @@ SECTIONS
 		KEEP(*(.fini_array))
 		PROVIDE_HIDDEN (__fini_array_end = .);
 
-		KEEP(*(.jcr*))
 		. = ALIGN(4);
 		/* All data end */
 		__copy_end__ = .;
@@ -136,4 +121,33 @@ SECTIONS
 
 	/* Check if data + heap + stack exceeds RAM limit */
 	ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
+
+    /* ELF Sections */
+    .comment 0 : { *(.comment) }
+    .symtab 0 : { *(.symtab) }
+    .strtab 0 : { *(.strtab) }
+    .shstrtab 0 : { *(.shstrtab) }
+
+    /* Dwarf Sections */
+    .debug_loclists 0 : { *(.debug_loclists) }
+    .debug_abbrev 0 : { *(.debug_abbrev) }
+    .debug_info 0 : { *(.debug_info) }
+    .debug_str_offsets 0 : { *(.debug_str_offsets) }
+    .debug_str 0 : { *(.debug_str) }
+    .debug_addr 0 : { *(.debug_addr) }
+    .debug_frame 0 : { *(.debug_frame) }
+    .debug_line 0 : { *(.debug_line) }
+    .debug_line_str 0 : { *(.debug_line_str) }
+    .debug_loc 0 : { *(.debug_loc) }
+    .debug_ranges 0 : { *(.debug_ranges) }
+    .debug_aranges 0 : { *(.debug_aranges) }
+    .debug_macro 0 : { *(.debug_macro) }
+    .debug_rnglists 0 : { *(.debug_rnglists) }
+
+    /* Exceptions are disabled, we don't need these sections */
+    /DISCARD/ : {
+        *(.ARM.extab);
+        *(.ARM.exidx);
+        *(.ARM.attributes);
+    }
 }

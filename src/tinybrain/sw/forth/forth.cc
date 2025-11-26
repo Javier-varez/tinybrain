@@ -72,7 +72,7 @@ bool WordHeader::matches(const char *const otherBase,
 }
 
 Stdio stdio{};
-ForthFile forthFile{forthBlob()};
+ForthFile forthFile{forth_blob()};
 
 std::array<ForthIo *, 2> io_sources{
     &forthFile,
@@ -86,8 +86,6 @@ std::array<ForthIo *, 2>::iterator current_io{io_sources.begin()};
     current_io++;
   }
 
-  assert(current_io != io_sources.end() &&
-         "Reached the end of the I/O sources.");
   return (*current_io)->readc();
 }
 

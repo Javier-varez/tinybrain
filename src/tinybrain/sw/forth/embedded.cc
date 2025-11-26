@@ -2,15 +2,12 @@
 
 #include <tinybrain/sw/forth/semihosting.hh>
 
-#include <cassert>
-
 namespace tinybrain::sw::forth {
 
 ForthFile::ForthFile(const std::span<const uint8_t> file_contents) noexcept
     : m_data{file_contents} {}
 
 [[nodiscard]] uint8_t ForthFile::readc() noexcept {
-  assert(m_data.size() > 0 && "Well, that's bad");
   const uint8_t byte = m_data[0];
   m_data = m_data.subspan(1, m_data.size() - 1);
   return byte;

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
-	"unicode"
 
 	"dbt-rules/RULES/cc"
 	"dbt-rules/RULES/core"
@@ -19,42 +18,32 @@ func namespaceToPath(s string) string {
 	return strings.Replace(s, "::", "/", -1)
 }
 
-func camelCaseToSnakeCase(s string) string {
-	result := []rune{}
-	for _, e := range s {
-		if unicode.IsUpper(e) {
-			result = append(result, '_', unicode.ToLower(e))
-		} else {
-			result = append(result, e)
-		}
-	}
-	return string(result)
+func namespaceToSnake(s string) string {
+	return strings.Replace(s, "::", "_", -1)
 }
 
 type blobArgs struct {
-	UsrHeader string
-	XxdHeader string
-	Namespace string
-	Name      string
+	BinFilePath    string
+	Namespace      string
+	NamespaceSnake string
+	Name           string
 }
 
 var sourceTemplate *template.Template = template.Must(template.New("SourceTemplate").Parse(`
-#include <span>
-#include <cstdint>
+.syntax unified
 
-#include <{{ .UsrHeader }}>
+	.section .rodata
+	.global blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob
+	.type blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob, "object"
+blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob:
+	.incbin "{{ .BinFilePath }}"
+blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob_end:
 
-namespace {{ .Namespace }} {
-
-namespace {
-#include <{{ .XxdHeader }}>
-}
-
-std::span<const uint8_t> {{ .Name }}Blob() noexcept{
-	return std::span<const uint8_t>{blob, blob_len};
-}
-
-} // namespace {{ .Namespace }}
+	.align 2
+	.global blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob_length
+	.type blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob_length, "object"
+blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob_length:
+	.4byte  blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob_end - blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob
 `))
 
 var headerTemplate *template.Template = template.Must(template.New("HeaderTemplate").Parse(`
@@ -65,10 +54,22 @@ var headerTemplate *template.Template = template.Must(template.New("HeaderTempla
 
 namespace {{ .Namespace }} {
 
+namespace detail {
+extern "C" {
+extern unsigned char blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob[];
+extern size_t blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob_length;
+};
+} // namespace detail
+
 /**
  * \brief Returns the data inside the blob, which has static storage duration.
  */
-[[nodiscard]] std::span<const uint8_t> {{ .Name }}Blob() noexcept;
+[[nodiscard]] inline std::span<const uint8_t> {{ .Name }}_blob() noexcept{
+	return std::span<const uint8_t>{
+		detail::blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob,
+		detail::blob_lib_{{ .NamespaceSnake }}_{{ .Name }}_blob_length,
+	};
+}
 
 } // namespace {{ .Namespace }}
 `))
@@ -98,33 +99,23 @@ type Blob struct {
 	Namespace string       // Namespace where to place the code
 }
 
-func (b *Blob) xxdFile() core.OutPath {
-	return b.Out.WithSuffix(".xxd.h")
-}
-
 func (b *Blob) sourceFile() core.OutPath {
-	return b.Out.WithSuffix(".cc")
+	return b.Out.WithSuffix(".S")
 }
 
 func (b *Blob) headerFile() core.OutPath {
-	return b.Out.WithSuffix(fmt.Sprintf(".includes/%s/%s_blob.hh", namespaceToPath(b.Namespace), camelCaseToSnakeCase(b.Name)))
+	return b.Out.WithSuffix(fmt.Sprintf(".includes/%s/%s_blob.hh", namespaceToPath(b.Namespace), b.Name))
 }
 
 func (b *Blob) Build(ctx core.Context) {
-	ctx.AddBuildStep(core.BuildStep{
-		Out: b.xxdFile(),
-		In:  b.Src,
-		Cmd: "xxd -i -n blob $in > $out",
-	})
-
 	args := blobArgs{
-		UsrHeader: b.headerFile().Absolute(),
-		XxdHeader: b.xxdFile().Absolute(),
-		Name:      b.Name,
-		Namespace: b.Namespace,
+		BinFilePath:    b.Src.Absolute(),
+		Name:           b.Name,
+		Namespace:      b.Namespace,
+		NamespaceSnake: namespaceToSnake(b.Namespace),
 	}
 
-	generateTemplateRule(ctx, b.sourceFile(), sourceTemplate, &args, []core.Path{b.headerFile(), b.xxdFile()})
+	generateTemplateRule(ctx, b.sourceFile(), sourceTemplate, &args, []core.Path{b.headerFile()})
 	generateTemplateRule(ctx, b.headerFile(), headerTemplate, &args, nil)
 }
 
