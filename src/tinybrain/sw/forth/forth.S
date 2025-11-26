@@ -511,7 +511,7 @@ defcode "]", 1, rbrace
 defcode "HIDDEN", 6, hidden
     pop { r0 }
     ldrb r1, [r0, #4]
-    eor r1, #f_immed
+    eor r1, #f_hidden
     strb r1, [r0, #4]
     next
 
