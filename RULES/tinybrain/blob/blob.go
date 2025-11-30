@@ -115,7 +115,7 @@ func (b *Blob) Build(ctx core.Context) {
 		NamespaceSnake: namespaceToSnake(b.Namespace),
 	}
 
-	generateTemplateRule(ctx, b.sourceFile(), sourceTemplate, &args, []core.Path{b.headerFile()})
+	generateTemplateRule(ctx, b.sourceFile(), sourceTemplate, &args, []core.Path{b.headerFile(), b.Src})
 	generateTemplateRule(ctx, b.headerFile(), headerTemplate, &args, nil)
 }
 

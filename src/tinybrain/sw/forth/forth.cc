@@ -74,12 +74,12 @@ bool WordHeader::matches(const char *const otherBase,
 Stdio stdio{};
 ForthFile forthFile{forth_blob()};
 
-std::array<ForthIo *, 2> io_sources{
-    &forthFile,
-    &stdio,
+const std::array io_sources{
+    static_cast<ForthIo *>(&forthFile),
+    static_cast<ForthIo *>(&stdio),
 };
 
-std::array<ForthIo *, 2>::iterator current_io{io_sources.begin()};
+auto current_io{io_sources.begin()};
 
 [[nodiscard]] uint8_t readc() noexcept {
   if ((*current_io)->is_eof()) {
@@ -104,11 +104,27 @@ std::array<uint8_t, MAX_WORD_SIZE> forth_word_buffer{};
   constexpr static uint32_t MASK = 32 - 1;
 
   char c;
-  while (std::isspace(c = readc())) {
-  }
 
-  forth_word_buffer[0] = c;
-  uint32_t size = 1;
+  uint32_t size = 0;
+  do {
+    while (std::isspace(c = readc())) {
+    }
+
+    if (c == '\\') {
+      forth_word_buffer[size] = c;
+      size = (size + 1) & MASK;
+      if (!std::isspace(c = readc())) {
+        break;
+      }
+
+      size = 0;
+      while ((c = readc()) != '\n') {
+      }
+    }
+  } while (std::isspace(c) || c == '\\');
+
+  forth_word_buffer[size] = c;
+  size = (size + 1) & MASK;
   for (;;) {
     c = readc();
     if (std::isspace(c)) {
@@ -196,6 +212,11 @@ void forth_dot_impl(const uint32_t value) {
 }
 
 void forth_emit_impl(const uint32_t value) { writec(value & 0xFF); }
+
+void forth_tell_impl(const uint32_t length, const uintptr_t strBase) {
+  const char *ptr = reinterpret_cast<const char *>(strBase);
+  debug_print(ptr, length);
+}
 
 void forth_unk_word(const size_t wordBytes, const uintptr_t wordBase) {
   debug_print("Unknown word \"");

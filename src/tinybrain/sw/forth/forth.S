@@ -88,7 +88,7 @@ forth_var_\label :
 
 .macro call_ffi target
     mov r7, sp
-    and r10, r7, #0xFFFFFFF0
+    and r10, r7, #~0x0F
     mov sp, r10
     and r7, r7, #0x0F
     bl \target
@@ -115,6 +115,9 @@ forth_var_\label :
 
 .global forth_dot_impl
 .type forth_dot_impl, %function
+
+.global forth_tell_impl
+.type forth_tell_impl, %function
 
 // Define all words here
 
@@ -526,19 +529,42 @@ defcode "IMMEDIATE", 9, immediate, f_immed
 
 // defined as immediate so that it works in compiled code
 defword "'", 1, tick, f_immed
-    .4byte forth_word
-    .4byte forth_find
-    .4byte forth_drop
-    .4byte forth_cfa
+    .4byte forth_word // ( addr n )
+    // Tuck the length of the string
+    .4byte forth_swap // ( n addr )
+    .4byte forth_over // ( n addr n )
+    .4byte forth_find // ( n newaddr result )
+    .4byte forth_zbranch // ( n newaddr )
+1:  .4byte 4f - 1b
+    .4byte forth_swap // ( newaddr n )
+    .4byte forth_drop // ( newaddr )
+    .4byte forth_cfa // ( codeword )
     .4byte forth_state
     .4byte forth_fetch
     .4byte forth_zbranch
-    .4byte 20
+2:  .4byte 3f - 2b
+    // Compile word
     .4byte forth_lit
     .4byte forth_lit
     .4byte forth_comma
     .4byte forth_comma
-    .4byte forth_exit
+3:  .4byte forth_exit
+    // word not found
+4:  .4byte forth_lit
+    .4byte tick_err_str
+    .4byte forth_lit
+    .4byte tick_err_str_end - tick_err_str
+    .4byte forth_tell
+    .4byte forth_swap
+    .4byte forth_tell
+    .4byte forth_lit
+    .4byte '\n'
+    .4byte forth_emit
+    .4byte forth_quit
+
+tick_err_str:
+    .ascii "' Could not find word: "
+tick_err_str_end:
 
 defword ":", 1, colon
     .4byte forth_word
@@ -572,9 +598,9 @@ defword ";", 1, semicolon, f_immed
 defword "QUIT", 4, quit
     .4byte forth_rz
     .4byte forth_rspstore
-    .4byte forth_interpret
+1:  .4byte forth_interpret
     .4byte forth_branch
-    .4byte -8
+2:  .4byte 1b - 2b
 
 defcode "INTERPRET", 9, interpret
     // Read a word from the input
@@ -688,7 +714,7 @@ defcode "FIND", 4, find
 defvar "STATE", 5, state // 0 -> Immediate mode. 1 -> Compilation mode
 defvar "HERE", 4, here
 defvar "S0", 2, sz
-defvar "BASE", 4, base, 0, 16
+defvar "BASE", 4, base, 0, 10
 
 .set tinybrain_forth_version, 48
 
@@ -697,6 +723,7 @@ defconst "R0", 2, rz, end_rsp
 defconst "F_IMMED", 7, __f_immed, f_immed
 defconst "F_HIDDEN", 8, __f_hidden, f_hidden
 defconst "F_LENMASK", 9, __f_lenmask, f_lenmask
+defconst "DOCOL", 5, __docol, docol
 
 defcode ">R", 2, to_rsp
     pop { r0 }
@@ -730,6 +757,32 @@ defcode "DSP!", 4, store_dsp
     mov sp, r0
     next
 
+defcode "CHAR", 4, char
+    call_ffi forth_word_impl
+    ldr r0, =forth_word_buffer
+    ldrb r0, [r0]
+    push { r0 }
+    next
+
+defcode "LITSTRING", 9, litstring
+    ldr r0, [r4], #4 // Get length
+    mov r1, r4 // Get ptr to string
+    // r2 <- alignup(r0, 4)
+    add r2, r0, #0x03
+    and r2, r2, #~0x03
+    add r4, r2
+    push { r0, r1 }
+    next
+
+defcode "TELL", 4, tell
+    pop { r0, r1 }
+    call_ffi forth_tell_impl
+    next
+
+defcode "EXECUTE", 7, execute
+    pop { r6 }
+    ldr pc, [r6]
+
 // The definition for LATEST has to go after all words are defined, to make sure that they are all captured
 defvar "LATEST", 6, latest, 0, link
 
@@ -745,7 +798,7 @@ end_rsp:
     .data
     .align 2
 begin_compile_space:
-    .skip 4096
+    .skip 8192
 end_compile_space:
 
 
@@ -760,9 +813,13 @@ coldstart:
     .global enter_forth
     .type enter_forth, %function
 enter_forth:
-    ldr r4, =coldstart
-    ldr r5, =end_rsp
     ldr r1, =begin_compile_space
     ldr r0, =forth_var_here
     str r1, [r0]
+
+    ldr r0, =forth_var_sz
+    str sp, [r0]
+
+    ldr r4, =coldstart
+    ldr r5, =end_rsp
     next
